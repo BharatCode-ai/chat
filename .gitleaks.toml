@@ -1,0 +1,20 @@
+title = "BharatCode Chat public secret scan"
+
+[allowlist]
+description = "Intentional placeholders and upstream test fixtures"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)api/test/\.env\.test\.example$''',
+  '''(^|/)bharatcode/\.env\.example$''',
+  '''(^|/)e2e/\.env\.test\.example$''',
+  '''(^|/)api/.+\.spec\.js$''',
+  '''(^|/)api/.+/__tests__/.+\.js$''',
+  '''(^|/)packages/.+\.spec\.ts$''',
+  '''(^|/)packages/.+/__tests__/.+\.(ts|tsx)$''',
+  '''(^|/)client/src/locales/.+/translation\.json$'''
+]
+
+regexes = [
+  '''(?i)(example|placeholder|fake|test)[-_ ]?(api|secret|token|key)''',
+  '''sk-test-[a-z0-9_-]+'''
+]

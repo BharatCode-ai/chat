@@ -1,0 +1,33 @@
+name: Feature Request
+description: Suggest a BharatCode Chat feature.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the desired behavior and any relevant UI/API details.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Chat UI
+        - Files and artifacts
+        - Library
+        - Model gateway
+        - Sandbox/tools
+        - Auth
+        - Docs
+        - Other

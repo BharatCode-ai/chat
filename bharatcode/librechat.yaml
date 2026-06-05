@@ -1,0 +1,122 @@
+version: 1.3.11
+cache: true
+
+endpoints:
+  custom:
+    - name: "BharatCode"
+      apiKey: "${BHARATCODE_CHAT_GATEWAY_TOKEN}"
+      baseURL: "${BHARATCODE_MODEL_BASE_URL}"
+      headers:
+        x-bharatcode-user-id: "{{LIBRECHAT_USER_OPENIDID}}"
+        x-bharatcode-user-email: "{{LIBRECHAT_USER_EMAIL}}"
+        x-bharatcode-user-name: "{{LIBRECHAT_USER_NAME}}"
+        x-bharatcode-chat-user-id: "{{LIBRECHAT_USER_ID}}"
+      models:
+        default:
+          - "bharatcode:qwen36-35b-awq-200k"
+        fetch: false
+      titleConvo: true
+      titleModel: "bharatcode:qwen36-35b-awq-200k"
+      modelDisplayLabel: "BharatCode"
+      iconURL: "/assets/bharatcode-mark.svg"
+      dropParams:
+        - "stop"
+        - "user"
+  agents:
+    allowedProviders:
+      - "BharatCode"
+    recursionLimit: 30
+    maxRecursionLimit: 60
+    disableBuilder: false
+    maxCitations: 20
+    maxCitationsPerFile: 5
+    minRelevanceScore: 0.45
+    capabilities:
+      - "file_search"
+      - "web_search"
+      - "artifacts"
+      - "subagents"
+      - "actions"
+      - "context"
+      - "skills"
+      - "tools"
+      - "chain"
+      - "ocr"
+
+modelSpecs:
+  enforce: true
+  list:
+    - name: "bharatcode"
+      label: "BharatCode"
+      default: true
+      description: "BharatCode shared model endpoint."
+      mcpServers:
+        - "bharatcode_tools"
+      webSearch: true
+      fileSearch: true
+      executeCode: true
+      artifacts: true
+      preset:
+        endpoint: "BharatCode"
+        model: "bharatcode:qwen36-35b-awq-200k"
+        stream: true
+        temperature: 0.4
+
+fileStrategies:
+  default: local
+  document: local
+  image: local
+  avatar: local
+
+mcpSettings:
+  allowedAddresses:
+    - "sandbox-orchestrator:8080"
+
+mcpServers:
+  bharatcode_tools:
+    type: streamable-http
+    url: http://sandbox-orchestrator:8080/mcp
+    title: BharatCode Tools
+    description: BharatCode-owned sandbox tools for PDF parsing, documents, presentations, spreadsheets, artifacts, and workflows.
+    timeout: 60000
+    initTimeout: 30000
+    chatMenu: true
+    serverInstructions: true
+
+fileConfig:
+  serverFileSizeLimit: 250
+  fileTokenLimit: 100000
+  endpoints:
+    default:
+      fileLimit: 8
+      fileSizeLimit: 100
+      totalSizeLimit: 250
+      supportedMimeTypes:
+        - "^image/(jpeg|png|webp)$"
+        - "^application/pdf$"
+        - "^application/vnd\\.openxmlformats-officedocument\\.(wordprocessingml\\.document|presentationml\\.presentation|spreadsheetml\\.sheet)$"
+        - "^application/vnd\\.ms-(word|powerpoint|excel)$"
+        - "^text/(plain|markdown|csv|json|xml|html)$"
+  ocr:
+    supportedMimeTypes:
+      - "^image/(jpeg|png|webp)$"
+      - "^application/pdf$"
+      - "^application/vnd\\.openxmlformats-officedocument\\.(wordprocessingml\\.document|presentationml\\.presentation|spreadsheetml\\.sheet)$"
+  text:
+    supportedMimeTypes:
+      - "^text/(plain|markdown|csv|json|xml|html|css|javascript|typescript|x-python|x-shell|x-sql|x-yaml|x-toml)$"
+
+interface:
+  endpointsMenu: false
+  modelSelect: false
+  parameters: false
+  presets: false
+  prompts: true
+  bookmarks: true
+  mcpServers:
+    use: true
+    create: false
+    share: false
+    public: false
+  multiConvo: false
+  buildInfo: false
