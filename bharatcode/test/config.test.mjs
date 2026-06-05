@@ -49,7 +49,8 @@ test('BharatCode public snapshot has safe contributor workflows only', () => {
   assert.match(ci, /node --test bharatcode\/test\/config\.test\.mjs/);
   assert.match(ci, /npm run build:api/);
   assert.match(ci, /npm run frontend:ci/);
-  assert.match(secretScan, /gitleaks\/gitleaks-action/);
+  assert.match(secretScan, /ghcr\.io\/gitleaks\/gitleaks:latest/);
+  assert.doesNotMatch(secretScan, /gitleaks\/gitleaks-action/);
 
   for (const removedWorkflow of [
     '.github/workflows/bharatcode-chat-image.yml',
