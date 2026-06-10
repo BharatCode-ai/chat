@@ -8,10 +8,14 @@ import { useAuthContext } from '~/hooks';
 // Polyfill Request for React Router in test environment
 if (typeof Request === 'undefined') {
   global.Request = class Request {
+    method: string;
+
     constructor(
       public url: string,
       public init?: RequestInit,
-    ) {}
+    ) {
+      this.method = init?.method ?? 'GET';
+    }
   } as any;
 }
 

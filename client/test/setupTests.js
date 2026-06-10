@@ -12,6 +12,7 @@ import '@testing-library/jest-dom';
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom/extend-expect';
+import { TextDecoder, TextEncoder } from 'util';
 
 // Mock canvas when run unit test cases with jest.
 // 'react-lottie' uses canvas
@@ -19,6 +20,20 @@ import 'jest-canvas-mock';
 
 // Mock ResizeObserver
 import './resizeObserver.mock';
+
+if (globalThis.TextEncoder == null) {
+  Object.defineProperty(globalThis, 'TextEncoder', {
+    writable: true,
+    value: TextEncoder,
+  });
+}
+
+if (globalThis.TextDecoder == null) {
+  Object.defineProperty(globalThis, 'TextDecoder', {
+    writable: true,
+    value: TextDecoder,
+  });
+}
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
