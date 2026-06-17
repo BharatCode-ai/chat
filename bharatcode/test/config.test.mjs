@@ -83,7 +83,7 @@ test('BharatCode LibreChat config exposes only one BharatCode model/provider', (
   assert.match(config, /model: "bharatcode:qwen36-35b-awq-200k"/);
   assert.match(config, /modelSpecs:/);
   assert.match(config, /label: "BharatCode"/);
-  assert.match(config, /mcpServers:\n\s+- "bharatcode_tools"/);
+  assert.match(config, /mcpServers:\r?\n\s+- "bharatcode_tools"/);
   assert.match(config, /webSearch: true/);
   assert.match(config, /fileSearch: true/);
   assert.match(config, /executeCode: true/);
