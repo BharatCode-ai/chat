@@ -1,4 +1,4 @@
-import { InMemoryFakeStorageDriver } from '../implementations/InMemoryFakeStorageDriver';
+import { InMemoryFakeStorageDriver } from '../testing';
 import type { StorageHandle } from '../interfaces/IStorageDriver';
 
 describe('InMemoryFakeStorageDriver', () => {
@@ -74,8 +74,19 @@ describe('InMemoryFakeStorageDriver', () => {
       await driver.write('user-1', 'note.md', Buffer.from('v1'), 'text/markdown', 'file-a');
       await driver.write('user-1', 'note.md', Buffer.from('v2 updated content'), 'text/markdown', 'file-a');
 
-      const result = await driver.read('file-a', 'note.md');
+      const result = await driver.read('user-1', 'file-a', 'note.md');
       expect(result.buffer.toString()).toBe('v2 updated content');
+    });
+
+    it('should not mutate stored data if original buffer is modified', async () => {
+      await driver.initialize();
+      const buf = Buffer.from('original');
+      await driver.write('user-1', 'test.txt', buf, 'text/plain', 'f1');
+      
+      buf.write('mutated!');
+      
+      const res = await driver.read('user-1', 'f1', 'test.txt');
+      expect(res.buffer.toString()).toBe('original');
     });
   });
 
@@ -87,14 +98,21 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('readable content');
       const handle = await driver.write('user-1', 'data.csv', buf, 'text/csv');
 
-      const result = await driver.read(handle.fileId, 'data.csv');
+      const result = await driver.read('user-1', handle.fileId, 'data.csv');
       expect(result.buffer).toEqual(buf);
       expect(result.metadata.fileId).toBe(handle.fileId);
     });
 
     it('should throw NOT_FOUND when reading a non-existent object', async () => {
       await driver.initialize();
-      const promise = driver.read('nonexistent', 'missing.txt');
+      const promise = driver.read('user-1', 'nonexistent', 'missing.txt');
+      await expect(promise).rejects.toThrow('NOT_FOUND');
+    });
+
+    it('should throw NOT_FOUND when reading an object owned by someone else', async () => {
+      await driver.initialize();
+      const handle = await driver.write('user-1', 'data.csv', Buffer.from('data'), 'text/csv');
+      const promise = driver.read('user-2', handle.fileId, 'data.csv');
       await expect(promise).rejects.toThrow('NOT_FOUND');
     });
 
@@ -103,7 +121,7 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('0123456789');
       const handle = await driver.write('user-1', 'slice.txt', buf, 'text/plain');
 
-      const result = await driver.read(handle.fileId, 'slice.txt', { offset: 3 });
+      const result = await driver.read('user-1', handle.fileId, 'slice.txt', { offset: 3 });
       expect(result.buffer.toString()).toBe('3456789');
     });
 
@@ -112,7 +130,7 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('abcdefghij');
       const handle = await driver.write('user-1', 'slice.txt', buf, 'text/plain');
 
-      const result = await driver.read(handle.fileId, 'slice.txt', { limit: 4 });
+      const result = await driver.read('user-1', handle.fileId, 'slice.txt', { limit: 4 });
       expect(result.buffer.toString()).toBe('abcd');
     });
 
@@ -121,7 +139,7 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('0123456789');
       const handle = await driver.write('user-1', 'slice.txt', buf, 'text/plain');
 
-      const result = await driver.read(handle.fileId, 'slice.txt', { offset: 2, limit: 3 });
+      const result = await driver.read('user-1', handle.fileId, 'slice.txt', { offset: 2, limit: 3 });
       expect(result.buffer.toString()).toBe('234');
     });
 
@@ -130,7 +148,7 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('hi');
       const handle = await driver.write('user-1', 'short.txt', buf, 'text/plain');
 
-      const result = await driver.read(handle.fileId, 'short.txt', { offset: 100 });
+      const result = await driver.read('user-1', handle.fileId, 'short.txt', { offset: 100 });
       expect(result.buffer.byteLength).toBe(0);
     });
 
@@ -139,7 +157,7 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('meta test');
       const handle = await driver.write('user-1', 'meta.txt', buf, 'text/plain');
 
-      const result = await driver.read(handle.fileId, 'meta.txt');
+      const result = await driver.read('user-1', handle.fileId, 'meta.txt');
       expect(result.metadata).toMatchObject({
         fileId: handle.fileId,
         objectName: 'meta.txt',
@@ -147,6 +165,17 @@ describe('InMemoryFakeStorageDriver', () => {
         mimeType: 'text/plain',
         sizeBytes: buf.byteLength,
       });
+    });
+
+    it('should not mutate stored data if read buffer is modified', async () => {
+      await driver.initialize();
+      const handle = await driver.write('user-1', 'test.txt', Buffer.from('original'), 'text/plain');
+      
+      const res1 = await driver.read('user-1', handle.fileId, 'test.txt');
+      res1.buffer.write('mutated!');
+      
+      const res2 = await driver.read('user-1', handle.fileId, 'test.txt');
+      expect(res2.buffer.toString()).toBe('original');
     });
   });
 
@@ -158,7 +187,7 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('metadata test');
       const handle = await driver.write('user-2', 'info.json', buf, 'application/json');
 
-      const meta = await driver.getMetadata(handle.fileId, 'info.json');
+      const meta = await driver.getMetadata('user-2', handle.fileId, 'info.json');
       expect(meta).toMatchObject({
         fileId: handle.fileId,
         objectName: 'info.json',
@@ -172,7 +201,7 @@ describe('InMemoryFakeStorageDriver', () => {
 
     it('should throw NOT_FOUND for a non-existent object', async () => {
       await driver.initialize();
-      const promise = driver.getMetadata('ghost', 'nowhere.txt');
+      const promise = driver.getMetadata('ghost', 'ghost', 'nowhere.txt');
       await expect(promise).rejects.toThrow('NOT_FOUND');
     });
   });
@@ -230,6 +259,16 @@ describe('InMemoryFakeStorageDriver', () => {
       const result = await driver.listFiles();
       expect(result.items).toHaveLength(1);
     });
+
+    it('should not return stale files when objectName changes for same fileId', async () => {
+      await driver.initialize();
+      await driver.write('user-1', 'first-name.txt', Buffer.from('v1'), 'text/plain', 'file-x');
+      await driver.write('user-1', 'second-name.txt', Buffer.from('v2'), 'text/plain', 'file-x');
+
+      const result = await driver.listFiles();
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].objectName).toBe('second-name.txt');
+    });
   });
 
   // ── Delete ───────────────────────────────────────────────────────────────
@@ -239,15 +278,15 @@ describe('InMemoryFakeStorageDriver', () => {
       await driver.initialize();
       const handle = await driver.write('user-1', 'remove.txt', Buffer.from('temp'), 'text/plain');
 
-      await driver.delete(handle.fileId, 'remove.txt');
+      await driver.delete('user-1', handle.fileId, 'remove.txt');
 
-      const promise = driver.read(handle.fileId, 'remove.txt');
+      const promise = driver.read('user-1', handle.fileId, 'remove.txt');
       await expect(promise).rejects.toThrow('NOT_FOUND');
     });
 
     it('should throw NOT_FOUND when deleting a non-existent object', async () => {
       await driver.initialize();
-      const promise = driver.delete('ghost', 'nowhere.txt');
+      const promise = driver.delete('ghost', 'ghost', 'nowhere.txt');
       await expect(promise).rejects.toThrow('NOT_FOUND');
     });
 
@@ -256,9 +295,9 @@ describe('InMemoryFakeStorageDriver', () => {
       const h1 = await driver.write('user-1', 'keep.txt', Buffer.from('keep'), 'text/plain');
       const h2 = await driver.write('user-1', 'remove.txt', Buffer.from('temp'), 'text/plain');
 
-      await driver.delete(h2.fileId, 'remove.txt');
+      await driver.delete('user-1', h2.fileId, 'remove.txt');
 
-      const result = await driver.read(h1.fileId, 'keep.txt');
+      const result = await driver.read('user-1', h1.fileId, 'keep.txt');
       expect(result.buffer.toString()).toBe('keep');
     });
   });
@@ -271,20 +310,20 @@ describe('InMemoryFakeStorageDriver', () => {
       const buf = Buffer.from('copyable content');
       const handle = await driver.write('user-1', 'original.txt', buf, 'text/plain');
 
-      const copy = await driver.copy(handle.fileId, 'original.txt', 'duplicate.txt');
+      const copy = await driver.copy('user-1', handle.fileId, 'original.txt', 'duplicate.txt');
 
       expect(copy.handle.objectName).toBe('duplicate.txt');
       expect(copy.handle.fileId).toBe(handle.fileId);
       expect(copy.isSameObject).toBe(false);
 
       // Verify the copy is readable
-      const result = await driver.read(handle.fileId, 'duplicate.txt');
+      const result = await driver.read('user-1', handle.fileId, 'duplicate.txt');
       expect(result.buffer).toEqual(buf);
     });
 
     it('should throw NOT_FOUND when copying a non-existent source', async () => {
       await driver.initialize();
-      const promise = driver.copy('ghost', 'missing.txt', 'target.txt');
+      const promise = driver.copy('user-1', 'ghost', 'missing.txt', 'target.txt');
       await expect(promise).rejects.toThrow('NOT_FOUND');
     });
 
@@ -292,8 +331,22 @@ describe('InMemoryFakeStorageDriver', () => {
       await driver.initialize();
       const handle = await driver.write('user-1', 'same.txt', Buffer.from('same'), 'text/plain');
 
-      const copy = await driver.copy(handle.fileId, 'same.txt', 'same.txt');
+      const copy = await driver.copy('user-1', handle.fileId, 'same.txt', 'same.txt');
       expect(copy.isSameObject).toBe(true);
+    });
+
+    it('should copy isolate data (not mutate on copied buffer modify)', async () => {
+      await driver.initialize();
+      const handle = await driver.write('user-1', 'original.txt', Buffer.from('copyable content'), 'text/plain');
+
+      await driver.copy('user-1', handle.fileId, 'original.txt', 'duplicate.txt');
+      const result = await driver.read('user-1', handle.fileId, 'duplicate.txt');
+      
+      result.buffer.write('mutated!!!!!!!!!');
+
+      // The copied content read fresh should not be mutated
+      const freshResult = await driver.read('user-1', handle.fileId, 'duplicate.txt');
+      expect(freshResult.buffer.toString()).toBe('copyable content');
     });
   });
 
@@ -308,18 +361,18 @@ describe('InMemoryFakeStorageDriver', () => {
       await new Promise((r) => setTimeout(r, 10));
       const h3 = await driver.write('user-1', 'versioned.txt', Buffer.from('v3'), 'text/plain', 'file-v');
 
-      const versions = await driver.listVersions('file-v');
+      const versions = await driver.listVersions('user-1', 'file-v');
       expect(versions).toHaveLength(3);
       expect(versions[0].isCurrent).toBe(true);
       expect(versions[0].objectName).toBe('versioned.txt');
       // Latest version should have the latest content
-      const latest = await driver.read('file-v', 'versioned.txt');
+      const latest = await driver.read('user-1', 'file-v', 'versioned.txt');
       expect(latest.buffer.toString()).toBe('v3');
     });
 
     it('should return empty array for a non-existent fileId', async () => {
       await driver.initialize();
-      const versions = await driver.listVersions('nonexistent');
+      const versions = await driver.listVersions('user-1', 'nonexistent');
       expect(versions).toHaveLength(0);
     });
 
@@ -327,7 +380,7 @@ describe('InMemoryFakeStorageDriver', () => {
       await driver.initialize();
       await driver.write('user-1', 'once.txt', Buffer.from('once'), 'text/plain', 'file-o');
 
-      const versions = await driver.listVersions('file-o');
+      const versions = await driver.listVersions('user-1', 'file-o');
       expect(versions).toHaveLength(1);
     });
   });
@@ -338,13 +391,13 @@ describe('InMemoryFakeStorageDriver', () => {
       await driver.write('user-1', 'cv.txt', Buffer.from('cv1'), 'text/plain', 'file-cv');
       await driver.write('user-1', 'cv.txt', Buffer.from('cv2'), 'text/plain', 'file-cv');
 
-      const current = await driver.getCurrentVersion('file-cv');
+      const current = await driver.getCurrentVersion('user-1', 'file-cv');
       expect(current.isCurrent).toBe(true);
     });
 
     it('should throw NOT_FOUND for a non-existent fileId', async () => {
       await driver.initialize();
-      const promise = driver.getCurrentVersion('no-such-file');
+      const promise = driver.getCurrentVersion('user-1', 'no-such-file');
       await expect(promise).rejects.toThrow('NOT_FOUND');
     });
   });
@@ -362,11 +415,11 @@ describe('InMemoryFakeStorageDriver', () => {
       expect(handle.fileId).toBe('lc-file');
 
       // Read
-      const readResult = await driver.read('lc-file', 'lifecycle.md');
+      const readResult = await driver.read('user-1', 'lc-file', 'lifecycle.md');
       expect(readResult.buffer).toEqual(buf);
 
       // Metadata
-      const meta = await driver.getMetadata('lc-file', 'lifecycle.md');
+      const meta = await driver.getMetadata('user-1', 'lc-file', 'lifecycle.md');
       expect(meta.objectName).toBe('lifecycle.md');
 
       // List
@@ -374,14 +427,14 @@ describe('InMemoryFakeStorageDriver', () => {
       expect(listed.items.some((i) => i.fileId === 'lc-file')).toBe(true);
 
       // Versions
-      const vers = await driver.listVersions('lc-file');
+      const vers = await driver.listVersions('user-1', 'lc-file');
       expect(vers).toHaveLength(1);
 
       // Delete
-      await driver.delete('lc-file', 'lifecycle.md');
+      await driver.delete('user-1', 'lc-file', 'lifecycle.md');
 
       // Verify deletion
-      const afterDelete = driver.read('lc-file', 'lifecycle.md');
+      const afterDelete = driver.read('user-1', 'lc-file', 'lifecycle.md');
       await expect(afterDelete).rejects.toThrow('NOT_FOUND');
     });
 

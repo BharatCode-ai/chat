@@ -28,7 +28,7 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
   /** fileId -> list of version records (oldest first) */
   private versions = new Map<string, VersionInfo[]>();
 
-  /** Composite key `${fileId}:${objectName}` -> version record */
+  /** fileId -> version record */
   private current = new Map<string, VersionInfo>();
 
   /** userId -> Set of fileIds owned by that user */
@@ -47,6 +47,7 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     this.versions.clear();
     this.current.clear();
     this.userFiles.clear();
+    this._bytes.clear();
     this.ready = false;
   }
 
@@ -64,10 +65,6 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     details?: { fileId?: string; objectName?: string; userId?: string },
   ): StorageError {
     return new StorageError({ code, message, ...details });
-  }
-
-  private currentKey(fileId: string, objectName: string): string {
-    return `${fileId}:${objectName}`;
   }
 
   private record(
@@ -102,7 +99,7 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     }
 
     fileVers.push(entry);
-    this.current.set(this.currentKey(fileId, objectName), entry);
+    this.current.set(fileId, entry);
 
     // Track ownership
     let set = this.userFiles.get(userId);
@@ -115,11 +112,15 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     return entry;
   }
 
-  private lookup(fileId: string, objectName: string): VersionInfo | undefined {
-    return this.current.get(this.currentKey(fileId, objectName));
+  private lookup(userId: string, fileId: string, objectName: string): VersionInfo | undefined {
+    const entry = this.current.get(fileId);
+    if (entry && entry.objectName === objectName && entry.userId === userId) {
+      return entry;
+    }
+    return undefined;
   }
 
-  // Bytes are stored separately so read() can return slices.
+  // Bytes are stored keyed by versionId
   private _bytes = new Map<string, Buffer>();
 
   // ── Write ────────────────────────────────────────────────────────────────
@@ -134,8 +135,18 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     this.assertReady();
 
     const id = fileId ?? randomUUID();
+    
+    // Enforce ownership if file already exists
+    const existing = this.userFiles.get(userId);
+    const allVersions = this.versions.get(id);
+    if (allVersions && allVersions.length > 0) {
+      if (!existing || !existing.has(id)) {
+         throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId: id, objectName, userId });
+      }
+    }
+
     const ver = this.record(id, objectName, buffer.byteLength, mimeType, userId);
-    this._bytes.set(this.currentKey(id, objectName), buffer);
+    this._bytes.set(ver.versionId, Buffer.from(buffer)); // Copy on write
 
     return {
       fileId: id,
@@ -149,15 +160,17 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
 
   // ── Read ─────────────────────────────────────────────────────────────────
 
-  async read(fileId: string, objectName: string, options?: ReadOptions): Promise<ReadResult> {
+  async read(userId: string, fileId: string, objectName: string, options?: ReadOptions): Promise<ReadResult> {
     this.assertReady();
 
-    const key = this.currentKey(fileId, objectName);
-    const buffer = this._bytes.get(key);
-    const entry = this.lookup(fileId, objectName);
+    const entry = this.lookup(userId, fileId, objectName);
+    if (!entry) {
+      throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId, objectName, userId });
+    }
 
-    if (!buffer || !entry) {
-      throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId, objectName });
+    const buffer = this._bytes.get(entry.versionId);
+    if (!buffer) {
+      throw this.makeError('NOT_FOUND', `Object bytes not found: ${objectName}`, { fileId, objectName, userId });
     }
 
     const offset = options?.offset ?? 0;
@@ -171,19 +184,19 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     }
 
     return {
-      buffer: slice,
+      buffer: Buffer.from(slice), // Copy on read
       metadata: this.toMetadata(entry),
     };
   }
 
   // ── Metadata ─────────────────────────────────────────────────────────────
 
-  async getMetadata(fileId: string, objectName: string): Promise<FileMetadata> {
+  async getMetadata(userId: string, fileId: string, objectName: string): Promise<FileMetadata> {
     this.assertReady();
 
-    const entry = this.lookup(fileId, objectName);
+    const entry = this.lookup(userId, fileId, objectName);
     if (!entry) {
-      throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId, objectName });
+      throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId, objectName, userId });
     }
 
     return this.toMetadata(entry);
@@ -195,16 +208,11 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     this.assertReady();
 
     const items: FileMetadata[] = [];
-    const seen = new Set<string>();
 
-    for (const [key, entry] of this.current) {
+    for (const entry of this.current.values()) {
       if (filter?.userId && entry.userId !== filter.userId) continue;
       if (filter?.mimeTypePrefix && !entry.mimeType.startsWith(filter.mimeTypePrefix)) continue;
       if (filter?.createdAtBefore && entry.createdAt > filter.createdAtBefore) continue;
-
-      // Only include the current version per fileId
-      if (seen.has(entry.fileId)) continue;
-      seen.add(entry.fileId);
 
       items.push(this.toMetadata(entry));
     }
@@ -223,46 +231,48 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
 
   // ── Delete ───────────────────────────────────────────────────────────────
 
-  async delete(fileId: string, objectName: string): Promise<void> {
+  async delete(userId: string, fileId: string, objectName: string): Promise<void> {
     this.assertReady();
 
-    const key = this.currentKey(fileId, objectName);
-    const existed = this.current.delete(key);
-    this._bytes.delete(key);
-
-    if (!existed) {
-      throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId, objectName });
+    const entry = this.lookup(userId, fileId, objectName);
+    if (!entry) {
+      throw this.makeError('NOT_FOUND', `Object not found: ${objectName}`, { fileId, objectName, userId });
     }
+
+    this.current.delete(fileId);
   }
 
   // ── Copy ─────────────────────────────────────────────────────────────────
 
   async copy(
+    userId: string,
     sourceFileId: string,
     sourceObjectName: string,
     targetObjectName: string,
   ): Promise<CopyResult> {
     this.assertReady();
 
-    const source = this.lookup(sourceFileId, sourceObjectName);
+    const source = this.lookup(userId, sourceFileId, sourceObjectName);
     if (!source) {
       throw this.makeError('NOT_FOUND', `Source object not found: ${sourceObjectName}`, {
         fileId: sourceFileId,
         objectName: sourceObjectName,
+        userId
       });
     }
 
-    const buffer = this._bytes.get(this.currentKey(sourceFileId, sourceObjectName));
+    const buffer = this._bytes.get(source.versionId);
     if (!buffer) {
       throw this.makeError('NOT_FOUND', `Source bytes not found: ${sourceObjectName}`, {
         fileId: sourceFileId,
         objectName: sourceObjectName,
+        userId
       });
     }
 
     // Copy uses the same fileId (same logical file, new version)
     const ver = this.record(sourceFileId, targetObjectName, buffer.byteLength, source.mimeType, source.userId);
-    this._bytes.set(this.currentKey(sourceFileId, targetObjectName), buffer);
+    this._bytes.set(ver.versionId, Buffer.from(buffer)); // Copy on copy
 
     return {
       handle: {
@@ -279,8 +289,14 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
 
   // ── Version ──────────────────────────────────────────────────────────────
 
-  async listVersions(fileId: string): Promise<VersionInfo[]> {
+  async listVersions(userId: string, fileId: string): Promise<VersionInfo[]> {
     this.assertReady();
+
+    // Enforce ownership
+    const existing = this.userFiles.get(userId);
+    if (!existing || !existing.has(fileId)) {
+        return [];
+    }
 
     const fileVers = this.versions.get(fileId);
     if (!fileVers || fileVers.length === 0) {
@@ -291,20 +307,15 @@ export class InMemoryFakeStorageDriver implements StorageDriver {
     return [...fileVers].reverse();
   }
 
-  async getCurrentVersion(fileId: string): Promise<VersionInfo> {
+  async getCurrentVersion(userId: string, fileId: string): Promise<VersionInfo> {
     this.assertReady();
 
-    const fileVers = this.versions.get(fileId);
-    if (!fileVers || fileVers.length === 0) {
-      throw this.makeError('NOT_FOUND', `No versions found for fileId: ${fileId}`, { fileId });
+    const entry = this.current.get(fileId);
+    if (!entry || entry.userId !== userId) {
+      throw this.makeError('NOT_FOUND', `No current version for fileId: ${fileId}`, { fileId, userId });
     }
 
-    const current = fileVers.find((v) => v.isCurrent);
-    if (!current) {
-      throw this.makeError('NOT_FOUND', `No current version for fileId: ${fileId}`, { fileId });
-    }
-
-    return current;
+    return entry;
   }
 
   // ── Internal ─────────────────────────────────────────────────────────────

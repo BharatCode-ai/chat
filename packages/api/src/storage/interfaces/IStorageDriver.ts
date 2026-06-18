@@ -207,7 +207,7 @@ export interface StorageDriver {
    *
    * @throws StorageError with code 'NOT_FOUND' when the object does not exist.
    */
-  read(fileId: string, objectName: string, options?: ReadOptions): Promise<ReadResult>;
+  read(userId: string, fileId: string, objectName: string, options?: ReadOptions): Promise<ReadResult>;
 
   // ── Metadata ─────────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ export interface StorageDriver {
    *
    * @throws StorageError with code 'NOT_FOUND' when the object does not exist.
    */
-  getMetadata(fileId: string, objectName: string): Promise<FileMetadata>;
+  getMetadata(userId: string, fileId: string, objectName: string): Promise<FileMetadata>;
 
   // ── List ─────────────────────────────────────────────────────────────────
 
@@ -232,7 +232,7 @@ export interface StorageDriver {
    *
    * @throws StorageError with code 'NOT_FOUND' when the object does not exist.
    */
-  delete(fileId: string, objectName: string): Promise<void>;
+  delete(userId: string, fileId: string, objectName: string): Promise<void>;
 
   // ── Copy ─────────────────────────────────────────────────────────────────
 
@@ -242,6 +242,7 @@ export interface StorageDriver {
    * @returns CopyResult describing the new handle.
    */
   copy(
+    userId: string,
     sourceFileId: string,
     sourceObjectName: string,
     targetObjectName: string,
@@ -252,10 +253,10 @@ export interface StorageDriver {
   /**
    * Return version history for a file, newest first.
    */
-  listVersions(fileId: string): Promise<VersionInfo[]>;
+  listVersions(userId: string, fileId: string): Promise<VersionInfo[]>;
 
   /**
    * Return the current (latest) version info for a file.
    */
-  getCurrentVersion(fileId: string): Promise<VersionInfo>;
+  getCurrentVersion(userId: string, fileId: string): Promise<VersionInfo>;
 }
