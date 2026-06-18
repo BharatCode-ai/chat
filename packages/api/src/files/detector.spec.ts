@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import {
   validateMimeAndExtension,
   sniffMimeType,
@@ -9,29 +7,24 @@ import {
 } from './detector';
 
 describe('MIME Sniifing and Validation Helpers', () => {
-  // Helper to read local test fixtures
-  const getFixtureBuffer = (filename: string): Buffer => {
-    return fs.readFileSync(path.join(__dirname, 'fixtures', filename));
-  };
-
-  // Mock buffers creator helpers mapped to local fixtures
-  const createPngBuffer = () => getFixtureBuffer('pixel.png');
-  const createJpegBuffer = () => getFixtureBuffer('pixel.jpg');
-  const createGifBuffer = (version: '87a' | '89a') => getFixtureBuffer('pixel.gif');
-  const createWebpBuffer = () => getFixtureBuffer('pixel.webp');
-  const createPdfBuffer = () => getFixtureBuffer('pixel.pdf');
+  // Valid minimal fixtures
+  const createPngBuffer = () => Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==', 'base64');
+  const createJpegBuffer = () => Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
+  const createGifBuffer = (version: '87a' | '89a') => Buffer.from(version === '87a' ? 'R0lGODdhAQABAPAAAP8AAAAAACwAAAAAAQABAAACAkQBADs=' : 'R0lGODlhAQABAPAAAP8AAAAAACwAAAAAAQABAAACAkQBADs=', 'base64');
+  const createWebpBuffer = () => Buffer.from('UklGRhYAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==', 'base64');
+  const createPdfBuffer = () => Buffer.from('JVBERi0xLjQKMSAwIG9iago8PAo+PgplbmRvYmoKdHJhaWxlcgo8PAovUm9vdCAxIDAgUgo+PgolJUVPRgo=', 'base64');
   
   const createZipBuffer = (innerFile?: string) => {
     if (innerFile === 'word/document.xml') {
-      return getFixtureBuffer('pixel.docx');
+      return Buffer.from('UEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbGhlbGxvUEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAARAAAAd29yZC9kb2N1bWVudC54bWxoZWxsb1BLAQIUABQAAAAAAOO+0lyGphA2BQAAAAUAAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQAFAAAAAAA477SXIamEDYFAAAABQAAABEAAAAAAAAAAAAAAIABNgAAAHdvcmQvZG9jdW1lbnQueG1sUEsFBgAAAAACAAIAgAAAAGoAAAAAAA==', 'base64');
     }
     if (innerFile === 'xl/workbook.xml') {
-      return getFixtureBuffer('pixel.xlsx');
+      return Buffer.from('UEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbGhlbGxvUEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAAPAAAAeGwvd29ya2Jvb2sueG1saGVsbG9QSwECFAAUAAAAAADjvtJchqYQNgUAAAAFAAAAEwAAAAAAAAAAAAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQIUABQAAAAAAOO+0lyGphA2BQAAAAUAAAAPAAAAAAAAAAAAAACAATYAAAB4bC93b3JrYm9vay54bWxQSwUGAAAAAAIAAgB+AAAAaAAAAAAA', 'base64');
     }
     if (innerFile === 'ppt/presentation.xml') {
-      return getFixtureBuffer('pixel.pptx');
+      return Buffer.from('UEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbGhlbGxvUEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAAUAAAAcHB0L3ByZXNlbnRhdGlvbi54bWxoZWxsb1BLAQIUABQAAAAAAOO+0lyGphA2BQAAAAUAAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQAFAAAAAAA477SXIamEDYFAAAABQAAABQAAAAAAAAAAAAAAIABNgAAAHBwdC9wcmVzZW50YXRpb24ueG1sUEsFBgAAAAACAAIAgwAAAG0AAAAAAA==', 'base64');
     }
-    return getFixtureBuffer('pixel.zip');
+    return Buffer.from('UEsDBBQAAAAAAOO+0lyGphA2BQAAAAUAAAAIAAAAdGVzdC50eHRoZWxsb1BLAQIUABQAAAAAAOO+0lyGphA2BQAAAAUAAAAIAAAAAAAAAAAAAACAAQAAAAB0ZXN0LnR4dFBLBQYAAAAAAQABADYAAAArAAAAAAA=', 'base64');
   };
 
   const createTextBuffer = (text: string) => Buffer.from(text, 'utf8');
@@ -39,8 +32,7 @@ describe('MIME Sniifing and Validation Helpers', () => {
 
   describe('isTextBuffer', () => {
     it('should identify printable ASCII text as text', () => {
-      const buf = getFixtureBuffer('pixel.txt');
-      expect(isTextBuffer(buf)).toBe(true);
+      expect(isTextBuffer(createTextBuffer('simple plain text'))).toBe(true);
     });
 
     it('should identify empty buffer as non-text', () => {
@@ -64,98 +56,98 @@ describe('MIME Sniifing and Validation Helpers', () => {
   });
 
   describe('sniffMimeType', () => {
-    it('should detect PNG', () => {
-      expect(sniffMimeType(createPngBuffer())).toBe('image/png');
+    it('should detect PNG', async () => {
+      expect(await sniffMimeType(createPngBuffer())).toBe('image/png');
     });
 
-    it('should detect JPEG', () => {
-      expect(sniffMimeType(createJpegBuffer())).toBe('image/jpeg');
+    it('should detect JPEG', async () => {
+      expect(await sniffMimeType(createJpegBuffer())).toBe('image/jpeg');
     });
 
-    it('should detect GIF', () => {
-      expect(sniffMimeType(createGifBuffer('87a'))).toBe('image/gif');
-      expect(sniffMimeType(createGifBuffer('89a'))).toBe('image/gif');
+    it('should detect GIF', async () => {
+      expect(await sniffMimeType(createGifBuffer('87a'))).toBe('image/gif');
+      expect(await sniffMimeType(createGifBuffer('89a'))).toBe('image/gif');
     });
 
-    it('should detect WebP', () => {
-      expect(sniffMimeType(createWebpBuffer())).toBe('image/webp');
+    it('should detect WebP', async () => {
+      expect(await sniffMimeType(createWebpBuffer())).toBe('image/webp');
     });
 
-    it('should detect PDF', () => {
-      expect(sniffMimeType(createPdfBuffer())).toBe('application/pdf');
+    it('should detect PDF', async () => {
+      expect(await sniffMimeType(createPdfBuffer())).toBe('application/pdf');
     });
 
-    it('should detect generic ZIP', () => {
-      expect(sniffMimeType(createZipBuffer())).toBe('application/zip');
+    it('should detect generic ZIP', async () => {
+      expect(await sniffMimeType(createZipBuffer())).toBe('application/zip');
     });
 
-    it('should detect DOCX from ZIP structure', () => {
-      expect(sniffMimeType(createZipBuffer('word/document.xml'))).toBe(
+    it('should detect DOCX from ZIP structure', async () => {
+      expect(await sniffMimeType(createZipBuffer('word/document.xml'))).toBe(
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       );
     });
 
-    it('should detect XLSX from ZIP structure', () => {
-      expect(sniffMimeType(createZipBuffer('xl/workbook.xml'))).toBe(
+    it('should detect XLSX from ZIP structure', async () => {
+      expect(await sniffMimeType(createZipBuffer('xl/workbook.xml'))).toBe(
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       );
     });
 
-    it('should detect PPTX from ZIP structure', () => {
-      expect(sniffMimeType(createZipBuffer('ppt/presentation.xml'))).toBe(
+    it('should detect PPTX from ZIP structure', async () => {
+      expect(await sniffMimeType(createZipBuffer('ppt/presentation.xml'))).toBe(
         'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       );
     });
 
-    it('should detect SVG', () => {
-      const svg = getFixtureBuffer('pixel.svg');
-      expect(sniffMimeType(svg)).toBe('image/svg+xml');
+    it('should detect SVG', async () => {
+      const svg = createTextBuffer('<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>');
+      expect(await sniffMimeType(svg)).toBe('image/svg+xml');
     });
 
-    it('should detect HTML', () => {
-      const html = getFixtureBuffer('pixel.html');
-      expect(sniffMimeType(html)).toBe('text/html');
+    it('should detect HTML', async () => {
+      const html = createTextBuffer('<!DOCTYPE html><html><body></body></html>');
+      expect(await sniffMimeType(html)).toBe('text/html');
     });
 
-    it('should default to text/plain for unrecognized printable text', () => {
-      expect(sniffMimeType(createTextBuffer('simple plain text'))).toBe('text/plain');
+    it('should default to text/plain for unrecognized printable text', async () => {
+      expect(await sniffMimeType(createTextBuffer('simple plain text'))).toBe('text/plain');
     });
 
-    it('should return null for unknown binary files', () => {
-      expect(sniffMimeType(createBinaryJunkBuffer())).toBeNull();
+    it('should return null for unknown binary files', async () => {
+      expect(await sniffMimeType(createBinaryJunkBuffer())).toBeNull();
     });
   });
 
   describe('validateMimeAndExtension', () => {
-    it('should accept matching PDF file', () => {
-      const resolved = validateMimeAndExtension(createPdfBuffer(), 'report.pdf');
+    it('should accept matching PDF file', async () => {
+      const resolved = await validateMimeAndExtension(createPdfBuffer(), 'report.pdf');
       expect(resolved).toBe('application/pdf');
     });
 
-    it('should accept matching PNG file', () => {
-      const resolved = validateMimeAndExtension(createPngBuffer(), 'avatar.PNG');
+    it('should accept matching PNG file', async () => {
+      const resolved = await validateMimeAndExtension(createPngBuffer(), 'avatar.PNG');
       expect(resolved).toBe('image/png');
     });
 
-    it('should accept matching DOCX file', () => {
-      const resolved = validateMimeAndExtension(createZipBuffer('word/document.xml'), 'document.docx');
+    it('should accept matching DOCX file', async () => {
+      const resolved = await validateMimeAndExtension(createZipBuffer('word/document.xml'), 'document.docx');
       expect(resolved).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     });
 
-    it('should accept CSV files', () => {
-      const resolved = validateMimeAndExtension(getFixtureBuffer('pixel.csv'), 'data.csv');
+    it('should accept CSV files', async () => {
+      const resolved = await validateMimeAndExtension(createTextBuffer('col1,col2\nval1,val2'), 'data.csv');
       expect(resolved).toBe('text/csv');
     });
 
-    it('should accept Markdown files', () => {
-      const resolved = validateMimeAndExtension(getFixtureBuffer('pixel.md'), 'readme.md');
+    it('should accept Markdown files', async () => {
+      const resolved = await validateMimeAndExtension(createTextBuffer('# Hello World'), 'readme.md');
       expect(resolved).toBe('text/markdown');
     });
 
-    const expectMimeError = (fn: () => any, code: MimeErrorCode, messageSubstr?: string) => {
+    const expectMimeErrorAsync = async (fn: () => Promise<any>, code: MimeErrorCode, messageSubstr?: string) => {
       let thrown = false;
       try {
-        fn();
+        await fn();
       } catch (err: any) {
         thrown = true;
         expect(err).toBeInstanceOf(MimeError);
@@ -167,58 +159,63 @@ describe('MIME Sniifing and Validation Helpers', () => {
       expect(thrown).toBe(true);
     };
 
-    it('should reject spoofed extension (PDF claiming to be PNG)', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createPdfBuffer(), 'spoof.png');
+    it('should reject spoofed extension (PDF claiming to be PNG)', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createPdfBuffer(), 'spoof.png');
       }, MimeErrorCode.MIME_MISMATCH, 'MIME type mismatch');
     });
 
-    it('should reject spoofed extension (Text claiming to be PDF)', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createTextBuffer('Just some plain text'), 'spoof.pdf');
+    it('should reject spoofed extension (Text claiming to be PDF)', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createTextBuffer('Just some plain text'), 'spoof.pdf');
       }, MimeErrorCode.MIME_MISMATCH, 'MIME type mismatch');
     });
 
-    it('should reject general ZIP claiming to be DOCX', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createZipBuffer(), 'spoof.docx');
+    it('should reject general ZIP claiming to be DOCX', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createZipBuffer(), 'spoof.docx');
       }, MimeErrorCode.MIME_MISMATCH, 'MIME type mismatch');
     });
 
-    it('should reject corrupt/binary CSV file', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createBinaryJunkBuffer(), 'binary.csv');
+    it('should reject corrupt/binary CSV file', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createBinaryJunkBuffer(), 'binary.csv');
       }, MimeErrorCode.INVALID_CONTENT, 'Invalid text content');
     });
 
-    it('should reject plain text claiming to be SVG without svg tags', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createTextBuffer('Not an SVG file content'), 'vector.svg');
+    it('should reject plain text claiming to be SVG without svg tags', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createTextBuffer('Not an SVG file content'), 'vector.svg');
       }, MimeErrorCode.INVALID_CONTENT, 'Invalid SVG file');
     });
 
-    it('should reject plain text claiming to be HTML without html tags', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createTextBuffer('Plain normal text'), 'page.html');
+    it('should reject plain text claiming to be HTML without html tags', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createTextBuffer('Plain normal text'), 'page.html');
       }, MimeErrorCode.INVALID_CONTENT, 'Invalid HTML file');
     });
 
-    it('should throw INVALID_BUFFER on empty buffer', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(Buffer.alloc(0), 'file.txt');
+    it('should reject active text formats spoofed as inert text', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createTextBuffer('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), 'file.txt');
+      }, MimeErrorCode.MIME_MISMATCH, 'MIME type mismatch');
+    });
+
+    it('should throw INVALID_BUFFER on empty buffer', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(Buffer.alloc(0), 'file.txt');
       }, MimeErrorCode.INVALID_BUFFER, 'File buffer is empty or invalid');
     });
 
-    it('should throw UNSUPPORTED_MIME on unknown extension and unknown content type', () => {
-      expectMimeError(() => {
-        validateMimeAndExtension(createBinaryJunkBuffer(), 'file.xyz');
+    it('should throw UNSUPPORTED_MIME on unknown extension and unknown content type', async () => {
+      await expectMimeErrorAsync(async () => {
+        await validateMimeAndExtension(createBinaryJunkBuffer(), 'file.xyz');
       }, MimeErrorCode.UNSUPPORTED_MIME, 'Unsupported or unrecognized file format');
     });
 
-    it('should resolve unknown extension if content matches supported type', () => {
-      const resolved = validateMimeAndExtension(createPngBuffer(), 'file.xyz');
+    it('should resolve unknown extension if content matches supported type', async () => {
+      const resolved = await validateMimeAndExtension(createPngBuffer(), 'file.xyz');
       expect(resolved).toBe('image/png');
     });
   });
 });
-

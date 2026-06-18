@@ -1,4 +1,5 @@
 import * as path from 'path';
+import yauzl from 'yauzl';
 
 export enum MimeErrorCode {
   INVALID_BUFFER = 'INVALID_BUFFER',
@@ -59,15 +60,16 @@ export const supportedMimeTypes = new Set<string>([
 
 /**
  * Checks if the buffer contains valid text/printable content.
- * Disallows null bytes and most control characters.
+ * Validates UTF-8 explicitly and disallows null bytes and most control characters.
  */
 export function isTextBuffer(buffer: Buffer): boolean {
   if (buffer.length === 0) {
     return false;
   }
-  const limit = Math.min(buffer.length, 8000);
-  for (let i = 0; i < limit; i++) {
-    const byte = buffer[i];
+  const limit = Math.min(buffer.length, 64000); // Check a larger chunk
+  const sample = buffer.subarray(0, limit);
+  for (let i = 0; i < sample.length; i++) {
+    const byte = sample[i];
     if (byte === 0) {
       return false; // Null byte indicates binary content
     }
@@ -77,14 +79,46 @@ export function isTextBuffer(buffer: Buffer): boolean {
       return false;
     }
   }
+
+  // Validate UTF-8 encoding strictly
+  try {
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    decoder.decode(sample);
+  } catch (err) {
+    return false;
+  }
+
   return true;
+}
+
+/**
+ * Reads entries from a ZIP buffer.
+ */
+function readZipEntries(buffer: Buffer): Promise<Set<string>> {
+  return new Promise((resolve) => {
+    const entries = new Set<string>();
+    yauzl.fromBuffer(buffer, { lazyEntries: false }, (err, zipfile) => {
+      if (err || !zipfile) {
+        return resolve(entries);
+      }
+      zipfile.on('entry', (entry) => {
+        entries.add(entry.fileName);
+      });
+      zipfile.on('end', () => {
+        resolve(entries);
+      });
+      zipfile.on('error', () => {
+        resolve(entries);
+      });
+    });
+  });
 }
 
 /**
  * Sniffs the magic bytes / header of the buffer to identify the MIME type.
  * Returns null if the format is not recognized.
  */
-export function sniffMimeType(buffer: Buffer): string | null {
+export async function sniffMimeType(buffer: Buffer): Promise<string | null> {
   if (!buffer || buffer.length === 0) {
     return null;
   }
@@ -142,26 +176,24 @@ export function sniffMimeType(buffer: Buffer): string | null {
     buffer[2] === 0x03 &&
     buffer[3] === 0x04
   ) {
-    // Search the binary buffer for file entry structures to identify sub-types.
-    // Read a chunk of the buffer as a string to scan for key file paths inside ZIP.
-    const scanLimit = Math.min(buffer.length, 64000);
-    const contentString = buffer.toString('utf8', 0, scanLimit);
-
-    if (contentString.includes('word/document.xml') || contentString.includes('word/_rels/document.xml.rels')) {
-      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    }
-    if (contentString.includes('xl/workbook.xml') || contentString.includes('xl/_rels/workbook.xml.rels')) {
-      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    }
-    if (contentString.includes('ppt/presentation.xml') || contentString.includes('ppt/_rels/presentation.xml.rels')) {
-      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const entries = await readZipEntries(buffer);
+    if (entries.has('[Content_Types].xml') || entries.has('_rels/.rels')) {
+      if (entries.has('word/document.xml') || entries.has('word/_rels/document.xml.rels')) {
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      }
+      if (entries.has('xl/workbook.xml') || entries.has('xl/_rels/workbook.xml.rels')) {
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+      if (entries.has('ppt/presentation.xml') || entries.has('ppt/_rels/presentation.xml.rels')) {
+        return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      }
     }
     return 'application/zip';
   }
 
   // 7. Text-based format heuristics
   if (isTextBuffer(buffer)) {
-    const textSample = buffer.toString('utf8', 0, Math.min(buffer.length, 4000)).trim();
+    const textSample = buffer.toString('utf8', 0, Math.min(buffer.length, 8000)).trim();
 
     // SVG check
     if (textSample.includes('<svg') || textSample.includes('xmlns="http://www.w3.org/2000/svg"')) {
@@ -188,7 +220,7 @@ export function sniffMimeType(buffer: Buffer): string | null {
  * @throws MimeError on validation failure
  * @returns The resolved verified MIME type
  */
-export function validateMimeAndExtension(buffer: Buffer, filename: string): string {
+export async function validateMimeAndExtension(buffer: Buffer, filename: string): Promise<string> {
   if (!buffer || buffer.length === 0) {
     throw new MimeError('File buffer is empty or invalid', MimeErrorCode.INVALID_BUFFER);
   }
@@ -201,7 +233,7 @@ export function validateMimeAndExtension(buffer: Buffer, filename: string): stri
   const expectedMime = extensionToMime[ext];
 
   // 1. Identify format by content sniffing
-  const sniffedMime = sniffMimeType(buffer);
+  const sniffedMime = await sniffMimeType(buffer);
 
   // 2. Perform validations based on expected type (if extension is known)
   if (expectedMime) {
@@ -224,6 +256,15 @@ export function validateMimeAndExtension(buffer: Buffer, filename: string): stri
             MimeErrorCode.MIME_MISMATCH
           );
         }
+      }
+
+      // Check if active text formats are mislabeled as inert text
+      if ((expectedMime === 'text/plain' || expectedMime === 'text/csv' || expectedMime === 'text/markdown') && 
+          (sniffedMime === 'text/html' || sniffedMime === 'image/svg+xml')) {
+        throw new MimeError(
+          `MIME type mismatch: expected inert text format ${expectedMime}, but detected active format ${sniffedMime}`,
+          MimeErrorCode.MIME_MISMATCH
+        );
       }
 
       // Special content validations
