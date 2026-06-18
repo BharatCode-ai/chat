@@ -177,7 +177,7 @@ export async function sniffMimeType(buffer: Buffer): Promise<string | null> {
     buffer[3] === 0x04
   ) {
     const entries = await readZipEntries(buffer);
-    if (entries.has('[Content_Types].xml') || entries.has('_rels/.rels')) {
+    if (entries.has('[Content_Types].xml') && entries.has('_rels/.rels')) {
       if (entries.has('word/document.xml') || entries.has('word/_rels/document.xml.rels')) {
         return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       }
