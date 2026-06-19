@@ -5,6 +5,7 @@ import type {
   ProcessorOutput,
   ProcessorRegistry,
 } from '../interfaces/IProcessorRegistry';
+import { normalizeMimeType } from '../utils';
 
 /**
  * In-memory implementation of ProcessorRegistry for unit tests and local dev.
@@ -22,6 +23,9 @@ export class InMemoryProcessorRegistry implements ProcessorRegistry {
   /** processorName -> FileProcessor */
   private processors = new Map<string, FileProcessor>();
 
+  /** processorName -> normalized mime types (snapshot) */
+  private processorMimes = new Map<string, string[]>();
+
   /** mimeType -> processorName */
   private mimeIndex = new Map<string, string>();
 
@@ -36,6 +40,7 @@ export class InMemoryProcessorRegistry implements ProcessorRegistry {
 
   async destroy(): Promise<void> {
     this.processors.clear();
+    this.processorMimes.clear();
     this.mimeIndex.clear();
     this.ready = false;
   }
@@ -62,13 +67,25 @@ export class InMemoryProcessorRegistry implements ProcessorRegistry {
       });
     }
 
-    this.processors.set(processor.name, processor);
+    const normalizedMimes = processor.supportedMimeTypes.map(normalizeMimeType);
 
-    for (const mime of processor.supportedMimeTypes) {
-      // First processor registered for a MIME type wins
-      if (!this.mimeIndex.has(mime)) {
-        this.mimeIndex.set(mime, processor.name);
+    // Pre-flight check: reject duplicate MIME registrations entirely
+    for (const mime of normalizedMimes) {
+      if (this.mimeIndex.has(mime)) {
+        throw new ProcessorError({
+          code: 'ALREADY_REGISTERED',
+          message: `MIME type already registered: ${mime}`,
+          mimeType: mime,
+          processorName: processor.name,
+        });
       }
+    }
+
+    this.processors.set(processor.name, processor);
+    this.processorMimes.set(processor.name, normalizedMimes);
+
+    for (const mime of normalizedMimes) {
+      this.mimeIndex.set(mime, processor.name);
     }
   }
 
@@ -82,20 +99,23 @@ export class InMemoryProcessorRegistry implements ProcessorRegistry {
       });
     }
 
-    // Remove MIME type index entries that point to this processor
-    for (const mime of processor.supportedMimeTypes) {
+    // Remove MIME type index entries using the snapshot
+    const registeredMimes = this.processorMimes.get(processorName) || [];
+    for (const mime of registeredMimes) {
       if (this.mimeIndex.get(mime) === processorName) {
         this.mimeIndex.delete(mime);
       }
     }
 
+    this.processorMimes.delete(processorName);
     this.processors.delete(processorName);
   }
 
   // ── Query ──────────────────────────────────────────────────────────────
 
   getProcessor(mimeType: string): FileProcessor {
-    const processorName = this.mimeIndex.get(mimeType);
+    const normalizedMime = normalizeMimeType(mimeType);
+    const processorName = this.mimeIndex.get(normalizedMime);
     if (!processorName) {
       throw new ProcessorError({
         code: 'UNSUPPORTED_MIME_TYPE',
@@ -122,7 +142,7 @@ export class InMemoryProcessorRegistry implements ProcessorRegistry {
   }
 
   canProcess(mimeType: string): boolean {
-    return this.mimeIndex.has(mimeType);
+    return this.mimeIndex.has(normalizeMimeType(mimeType));
   }
 
   // ── Dispatch ───────────────────────────────────────────────────────────

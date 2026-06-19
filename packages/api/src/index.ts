@@ -55,6 +55,8 @@ export * from './tools';
 export * from './web';
 /* Cache */
 export * from './cache';
+/* Processors */
+export * from './processors';
 /* Stream */
 export * from './stream';
 /* Diagnostics */

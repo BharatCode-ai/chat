@@ -147,17 +147,37 @@ describe('InMemoryProcessorRegistry', () => {
       }).toThrow('ALREADY_REGISTERED');
     });
 
-    it('should allow different processors with overlapping MIME types (first wins)', () => {
+    it('should reject different processors with overlapping MIME types', () => {
       registry.register(new NoOpProcessor('proc-a', ['text/plain']));
-      registry.register(new NoOpProcessor('proc-b', ['text/plain', 'text/csv']));
+      expect(() => {
+        registry.register(new NoOpProcessor('proc-b', ['text/plain', 'text/csv']));
+      }).toThrow('ALREADY_REGISTERED');
+    });
 
-      // First registered wins for text/plain
-      const proc = registry.getProcessor('text/plain');
-      expect(proc.name).toBe('proc-a');
+    it('should normalize MIME types consistently', () => {
+      registry.register(new NoOpProcessor('normalizer-proc', ['TEXT/PLAIN; charset=utf-8']));
+      expect(registry.canProcess('text/plain')).toBe(true);
+      expect(registry.getProcessor(' Text/Plain ; boundary=something ').name).toBe('normalizer-proc');
+    });
 
-      // proc-b still gets text/csv since no one else claimed it
-      const csvProc = registry.getProcessor('text/csv');
-      expect(csvProc.name).toBe('proc-b');
+    it('should ignore mutations to supportedMimeTypes after registration (snapshot behavior)', () => {
+      // Create a custom processor because NoOpProcessor freezes its array
+      const customProc = {
+        name: 'mutator-proc',
+        supportedMimeTypes: ['image/jpeg'],
+        process: async (input: any) => ({ fileId: input.fileId, processorName: 'mutator-proc', mimeType: 'image/jpeg', artifacts: [], metadata: { processedAt: new Date(), inputSize: 0 }})
+      };
+      registry.register(customProc);
+
+      // Mutate the array after registration
+      customProc.supportedMimeTypes.push('image/gif');
+
+      // The registry should NOT pick up the mutated array
+      expect(registry.canProcess('image/gif')).toBe(false);
+
+      // Unregister should properly clean up the original snapshot, ignoring the mutation
+      registry.unregister('mutator-proc');
+      expect(registry.canProcess('image/jpeg')).toBe(false);
     });
 
     it('should index all MIME types from a multi-type processor', () => {
