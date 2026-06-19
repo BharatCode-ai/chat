@@ -119,6 +119,24 @@ describe('MIME Sniifing and Validation Helpers', () => {
       expect(await sniffMimeType(createTextBuffer('simple plain text'))).toBe('text/plain');
     });
 
+    it('should reject truncated header-only PNG', async () => {
+      // 8 byte signature only
+      const corruptPng = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+      expect(await sniffMimeType(corruptPng)).toBeNull();
+    });
+
+    it('should reject truncated header-only JPEG', async () => {
+      // 3 byte signature only
+      const corruptJpeg = Buffer.from([0xFF, 0xD8, 0xFF]);
+      expect(await sniffMimeType(corruptJpeg)).toBeNull();
+    });
+
+    it('should reject truncated header-only PDF', async () => {
+      // %PDF- signature only
+      const corruptPdf = Buffer.from('%PDF-1.4');
+      expect(await sniffMimeType(corruptPdf)).toBeNull();
+    });
+
     it('should return null for unknown binary files', async () => {
       expect(await sniffMimeType(createBinaryJunkBuffer())).toBeNull();
     });
