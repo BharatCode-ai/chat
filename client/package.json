@@ -63,7 +63,7 @@
     "@tanstack/react-table": "^8.11.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "copy-to-clipboard": "^3.3.3",
+    "copy-to-clipboard": "^4.0.2",
     "cross-env": "^7.0.3",
     "date-fns": "^3.3.1",
     "dompurify": "^3.4.0",
