@@ -86,7 +86,7 @@ describe('RFC 0001 file and artifact contract', () => {
           file_id: 'file_abc123',
           name: 'quarterly-plan.pptx',
           content_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          download_url: 'https://storage.googleapis.com/bharatcode-chat-artifacts/raw.pptx',
+          download_url: 'https://storage.googleapis.com/example-artifacts/raw.pptx',
         }),
       ).toThrow(expect.objectContaining({ code: ArtifactFileErrorCode.UNSAFE_DOWNLOAD_URL }));
     });
