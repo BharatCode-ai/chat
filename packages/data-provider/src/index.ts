@@ -8,6 +8,8 @@ export * from './file-config';
 export * from './messages';
 /* artifacts  */
 export * from './artifacts';
+/* BharatCode file/artifact platform */
+export * from './file-artifacts';
 /* schema helpers  */
 export * from './parsers';
 /* custom/dynamic configurations  */

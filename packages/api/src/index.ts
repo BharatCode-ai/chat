@@ -47,6 +47,8 @@ export * from './skills';
 export * from './endpoints';
 /* Files */
 export * from './files';
+/* BharatCode file/artifact platform */
+export * from './file-artifacts';
 /* Storage */
 export * from './storage';
 /* Tools */
