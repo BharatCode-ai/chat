@@ -1,35 +1,35 @@
-import type { ComponentType } from 'react';
+import { FileIcon, Sparkles } from '@librechat/client';
 import {
-  FileAudio,
-  FileCode,
-  FileImage,
-  FileSpreadsheet,
-  FileText,
-  FileVideo,
-  Sparkles,
-} from 'lucide-react';
+  AudioPaths,
+  CodePaths,
+  FilePaths,
+  SheetPaths,
+  TextPaths,
+  VideoPaths,
+} from '@librechat/client';
 import type { LibraryItem, LibraryItemType } from '~/types/library';
 import { cn } from '~/utils';
-import {
-  formatLibraryDate,
-  formatLibraryFileSize,
-  LIBRARY_TYPE_LABELS,
-} from './libraryUtils';
+import { formatLibraryDate, formatLibraryFileSize, LIBRARY_TYPE_LABELS } from './libraryUtils';
 
 interface LibraryListItemProps {
   item: LibraryItem;
   onClick?: (item: LibraryItem) => void;
 }
 
-const TYPE_ICON_MAP: Record<LibraryItemType, ComponentType<{ className?: string }>> = {
-  pdf: FileText,
-  image: FileImage,
-  video: FileVideo,
-  document: FileText,
-  code: FileCode,
-  spreadsheet: FileSpreadsheet,
-  audio: FileAudio,
-  artifact: Sparkles,
+interface LibraryFileType {
+  fill: string;
+  paths: React.FC;
+  title: string;
+}
+
+const TYPE_FILE_TYPE_MAP: Record<Exclude<LibraryItemType, 'artifact'>, LibraryFileType> = {
+  pdf: { paths: TextPaths, fill: '#EF4444', title: 'PDF' },
+  image: { paths: FilePaths, fill: '#EC4899', title: 'Image' },
+  video: { paths: VideoPaths, fill: '#A855F7', title: 'Video' },
+  document: { paths: TextPaths, fill: '#3B82F6', title: 'Document' },
+  code: { paths: CodePaths, fill: '#F97316', title: 'Code' },
+  spreadsheet: { paths: SheetPaths, fill: '#10B981', title: 'Spreadsheet' },
+  audio: { paths: AudioPaths, fill: '#F59E0B', title: 'Audio' },
 };
 
 const TYPE_COLOR_MAP: Record<LibraryItemType, string> = {
@@ -47,7 +47,8 @@ const itemRowClassName =
   'flex w-full items-center gap-3 rounded-lg border border-border-light bg-surface-primary px-4 py-3 text-left transition-colors';
 
 export default function LibraryListItem({ item, onClick }: LibraryListItemProps) {
-  const Icon = TYPE_ICON_MAP[item.type];
+  const fileType = TYPE_FILE_TYPE_MAP[item.type];
+  const isArtifact = item.type === 'artifact';
   const iconColor = TYPE_COLOR_MAP[item.type];
   const ariaLabel = `${item.name}, ${LIBRARY_TYPE_LABELS[item.type]}, ${formatLibraryFileSize(item.sizeBytes)}`;
 
@@ -60,7 +61,7 @@ export default function LibraryListItem({ item, onClick }: LibraryListItemProps)
         )}
         aria-hidden="true"
       >
-        <Icon className="size-5" />
+        {isArtifact ? <Sparkles className="size-5" /> : <FileIcon fileType={fileType} />}
       </div>
 
       <div className="min-w-0 flex-1">

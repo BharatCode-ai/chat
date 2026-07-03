@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { Search, X } from 'lucide-react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
+import { Search } from 'lucide-react';
+import { CrossIcon } from '@librechat/client';
 import { Input, SelectDropDown } from '@librechat/client';
 import type { LibraryFiltersState } from '~/types/library';
 import { useDebounce } from '~/hooks';
@@ -43,10 +51,7 @@ export default function LibraryFilters({
     onFiltersChange((prev) => ({ ...prev, search: '' }));
   }, [onFiltersChange]);
 
-  const selectedTypeOption = findLibraryOption(
-    LIBRARY_TYPE_FILTER_OPTIONS,
-    filters.typeFilter,
-  );
+  const selectedTypeOption = findLibraryOption(LIBRARY_TYPE_FILTER_OPTIONS, filters.typeFilter);
 
   const selectedSortOption = findLibraryOption(LIBRARY_SORT_OPTIONS, filters.sortBy);
 
@@ -76,9 +81,11 @@ export default function LibraryFilters({
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1" role="search">
+          {/* eslint-disable-next-line i18next/no-literal-string */}
           <label htmlFor="library-search" className="sr-only">
             Search library
           </label>
+          {}
           <Input
             id="library-search"
             type="search"
@@ -101,7 +108,7 @@ export default function LibraryFilters({
               className="absolute right-3 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Clear search"
             >
-              <X className="size-4" aria-hidden="true" />
+              <CrossIcon className="size-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -130,9 +137,11 @@ export default function LibraryFilters({
         </div>
       </div>
 
+      {/* eslint-disable i18next/no-literal-string */}
       <p className="text-xs text-text-secondary" aria-live="polite">
         Showing {resultCount} of {totalCount} {itemLabel}
       </p>
+      {/* eslint-enable i18next/no-literal-string */}
     </div>
   );
 }
