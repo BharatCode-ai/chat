@@ -9,7 +9,7 @@ import {
 import { Search } from 'lucide-react';
 import { CrossIcon } from '@librechat/client';
 import { Input, SelectDropDown } from '@librechat/client';
-import type { LibraryFiltersState } from '~/types/library';
+import type { LibraryFiltersState, LibraryViewMode } from '~/types/library';
 import { useDebounce } from '~/hooks';
 import { createDropdownSetter } from '~/utils';
 import {
@@ -19,12 +19,15 @@ import {
   parseLibrarySortOption,
   parseLibraryTypeFilter,
 } from './libraryUtils';
+import LibraryViewToggle from './LibraryViewToggle';
 
 interface LibraryFiltersProps {
   filters: LibraryFiltersState;
   onFiltersChange: Dispatch<SetStateAction<LibraryFiltersState>>;
   resultCount: number;
   totalCount: number;
+  viewMode: LibraryViewMode;
+  onViewModeChange: (mode: LibraryViewMode) => void;
 }
 
 export default function LibraryFilters({
@@ -32,6 +35,8 @@ export default function LibraryFilters({
   onFiltersChange,
   resultCount,
   totalCount,
+  viewMode,
+  onViewModeChange,
 }: LibraryFiltersProps) {
   const [searchInput, setSearchInput] = useState(filters.search);
   const debouncedSearch = useDebounce(searchInput, 300);
@@ -85,7 +90,6 @@ export default function LibraryFilters({
           <label htmlFor="library-search" className="sr-only">
             Search library
           </label>
-          {}
           <Input
             id="library-search"
             type="search"
@@ -134,6 +138,7 @@ export default function LibraryFilters({
               className="h-10 min-w-[9rem] rounded-lg text-sm"
             />
           </div>
+          <LibraryViewToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
         </div>
       </div>
 

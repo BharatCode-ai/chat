@@ -103,7 +103,7 @@ export function getStorageUsagePercent(usedBytes: number, totalBytes: number): n
   if (totalBytes <= 0) {
     return 0;
   }
-  return Math.min(100, Math.round((usedBytes / totalBytes) * 100));
+  return Math.max(0, Math.min(100, Math.round((usedBytes / totalBytes) * 100)));
 }
 
 /** Filters items by case-insensitive search across name and description. */

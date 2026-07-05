@@ -1,53 +1,20 @@
 import { FileIcon, Sparkles } from '@librechat/client';
-import {
-  AudioPaths,
-  CodePaths,
-  FilePaths,
-  SheetPaths,
-  TextPaths,
-  VideoPaths,
-} from '@librechat/client';
-import type { LibraryItem, LibraryItemType } from '~/types/library';
+import type { LibraryItem } from '~/types/library';
 import { cn } from '~/utils';
 import { formatLibraryDate, formatLibraryFileSize, LIBRARY_TYPE_LABELS } from './libraryUtils';
+import { getLibraryFileType, TYPE_COLOR_MAP } from './libraryTypeMeta';
+import LibraryItemActions from './LibraryItemActions';
 
 interface LibraryListItemProps {
   item: LibraryItem;
   onClick?: (item: LibraryItem) => void;
 }
 
-interface LibraryFileType {
-  fill: string;
-  paths: React.FC;
-  title: string;
-}
-
-const TYPE_FILE_TYPE_MAP: Record<Exclude<LibraryItemType, 'artifact'>, LibraryFileType> = {
-  pdf: { paths: TextPaths, fill: '#EF4444', title: 'PDF' },
-  image: { paths: FilePaths, fill: '#EC4899', title: 'Image' },
-  video: { paths: VideoPaths, fill: '#A855F7', title: 'Video' },
-  document: { paths: TextPaths, fill: '#3B82F6', title: 'Document' },
-  code: { paths: CodePaths, fill: '#F97316', title: 'Code' },
-  spreadsheet: { paths: SheetPaths, fill: '#10B981', title: 'Spreadsheet' },
-  audio: { paths: AudioPaths, fill: '#F59E0B', title: 'Audio' },
-};
-
-const TYPE_COLOR_MAP: Record<LibraryItemType, string> = {
-  pdf: 'text-red-500',
-  image: 'text-pink-500',
-  video: 'text-purple-500',
-  document: 'text-blue-500',
-  code: 'text-orange-500',
-  spreadsheet: 'text-emerald-500',
-  audio: 'text-amber-500',
-  artifact: 'text-violet-500',
-};
-
 const itemRowClassName =
   'flex w-full items-center gap-3 rounded-lg border border-border-light bg-surface-primary px-4 py-3 text-left transition-colors';
 
 export default function LibraryListItem({ item, onClick }: LibraryListItemProps) {
-  const fileType = TYPE_FILE_TYPE_MAP[item.type];
+  const fileType = getLibraryFileType(item.type);
   const isArtifact = item.type === 'artifact';
   const iconColor = TYPE_COLOR_MAP[item.type];
   const ariaLabel = `${item.name}, ${LIBRARY_TYPE_LABELS[item.type]}, ${formatLibraryFileSize(item.sizeBytes)}`;
@@ -86,27 +53,28 @@ export default function LibraryListItem({ item, onClick }: LibraryListItemProps)
     </>
   );
 
-  if (onClick) {
-    return (
-      <div role="listitem">
+  return (
+    <div
+      role="listitem"
+      className={cn(
+        itemRowClassName,
+        onClick &&
+          'cursor-pointer hover:border-border-medium hover:bg-surface-hover focus-within:outline-none focus-within:ring-2 focus-within:ring-ring',
+      )}
+      aria-label={ariaLabel}
+    >
+      {onClick ? (
         <button
           type="button"
           onClick={() => onClick(item)}
-          className={cn(
-            itemRowClassName,
-            'cursor-pointer hover:border-border-medium hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          )}
-          aria-label={ariaLabel}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none"
         >
           {content}
         </button>
-      </div>
-    );
-  }
-
-  return (
-    <div role="listitem" className={itemRowClassName} aria-label={ariaLabel}>
-      {content}
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-3">{content}</div>
+      )}
+      <LibraryItemActions className="hidden shrink-0 sm:flex" />
     </div>
   );
 }
