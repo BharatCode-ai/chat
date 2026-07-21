@@ -8,6 +8,9 @@ import LibraryItemActions from './LibraryItemActions';
 interface LibraryPreviewCardProps {
   item: LibraryItem;
   onClick?: (item: LibraryItem) => void;
+  onDownload?: (item: LibraryItem) => void;
+  onShare?: (item: LibraryItem) => void;
+  onMore?: (item: LibraryItem) => void;
 }
 
 function isPresentation(item: LibraryItem): boolean {
@@ -118,7 +121,13 @@ function PreviewArea({ item }: { item: LibraryItem }) {
   );
 }
 
-export default function LibraryPreviewCard({ item, onClick }: LibraryPreviewCardProps) {
+export default function LibraryPreviewCard({
+  item,
+  onClick,
+  onDownload,
+  onShare,
+  onMore,
+}: LibraryPreviewCardProps) {
   const fileType = getLibraryFileType(item.type);
   const isArtifact = item.type === 'artifact';
   const iconColor = TYPE_COLOR_MAP[item.type];
@@ -135,14 +144,20 @@ export default function LibraryPreviewCard({ item, onClick }: LibraryPreviewCard
       )}
       aria-label={ariaLabel}
     >
-      <button
-        type="button"
-        onClick={onClick ? () => onClick(item) : undefined}
-        className="flex h-32 items-center justify-center bg-amber-50/80 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={onClick ? `Open ${item.name}` : undefined}
-      >
-        <PreviewArea item={item} />
-      </button>
+      {onClick ? (
+        <button
+          type="button"
+          onClick={() => onClick(item)}
+          className="flex h-32 items-center justify-center bg-amber-50/80 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`Open ${item.name}`}
+        >
+          <PreviewArea item={item} />
+        </button>
+      ) : (
+        <div className="flex h-32 items-center justify-center bg-amber-50/80 p-4">
+          <PreviewArea item={item} />
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start gap-2">
@@ -169,7 +184,12 @@ export default function LibraryPreviewCard({ item, onClick }: LibraryPreviewCard
 
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="text-xs text-text-secondary">Quick actions</span>
-          <LibraryItemActions />
+          <LibraryItemActions
+            onOpen={onClick ? () => onClick(item) : undefined}
+            onDownload={onDownload ? () => onDownload(item) : undefined}
+            onShare={onShare ? () => onShare(item) : undefined}
+            onMore={onMore ? () => onMore(item) : undefined}
+          />
         </div>
       </div>
     </div>

@@ -16,6 +16,10 @@ export default function LibraryItemActions({
   onMore,
   className,
 }: LibraryItemActionsProps) {
+  if (!onOpen && !onDownload && !onShare && !onMore) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
@@ -26,38 +30,46 @@ export default function LibraryItemActions({
       role="group"
       aria-label="Quick actions"
     >
-      <button
-        type="button"
-        onClick={onOpen}
-        className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Open"
-      >
-        <ExternalLink className="size-4" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        onClick={onDownload}
-        className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Download"
-      >
-        <Download className="size-4" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        onClick={onShare}
-        className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Share"
-      >
-        <Share2 className="size-4" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        onClick={onMore}
-        className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="More options"
-      >
-        <MoreVertical className="size-4" aria-hidden="true" />
-      </button>
+      {onOpen && (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Open"
+        >
+          <ExternalLink className="size-4" aria-hidden="true" />
+        </button>
+      )}
+      {onDownload && (
+        <button
+          type="button"
+          onClick={onDownload}
+          className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Download"
+        >
+          <Download className="size-4" aria-hidden="true" />
+        </button>
+      )}
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Share"
+        >
+          <Share2 className="size-4" aria-hidden="true" />
+        </button>
+      )}
+      {onMore && (
+        <button
+          type="button"
+          onClick={onMore}
+          className="inline-flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="More options"
+        >
+          <MoreVertical className="size-4" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }

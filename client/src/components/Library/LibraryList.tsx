@@ -28,6 +28,9 @@ interface LibraryListProps {
   errorMessage?: string;
   onRetry?: () => void;
   onItemClick?: (item: LibraryItem) => void;
+  onDownload?: (item: LibraryItem) => void;
+  onShare?: (item: LibraryItem) => void;
+  onMore?: (item: LibraryItem) => void;
   className?: string;
 }
 
@@ -38,6 +41,9 @@ export default function LibraryList({
   errorMessage,
   onRetry,
   onItemClick,
+  onDownload,
+  onShare,
+  onMore,
   className = '',
 }: LibraryListProps) {
   const [filters, setFilters] = useState<LibraryFiltersState>(DEFAULT_FILTERS);
@@ -104,13 +110,27 @@ export default function LibraryList({
           aria-label="Library items"
         >
           {filteredItems.map((item) => (
-            <LibraryPreviewCard key={item.id} item={item} onClick={onItemClick} />
+            <LibraryPreviewCard
+              key={item.id}
+              item={item}
+              onClick={onItemClick}
+              onDownload={onDownload}
+              onShare={onShare}
+              onMore={onMore}
+            />
           ))}
         </div>
       ) : (
         <div className="flex flex-col gap-2" role="list" aria-label="Library items">
           {filteredItems.map((item) => (
-            <LibraryListItem key={item.id} item={item} onClick={onItemClick} />
+            <LibraryListItem
+              key={item.id}
+              item={item}
+              onClick={onItemClick}
+              onDownload={onDownload}
+              onShare={onShare}
+              onMore={onMore}
+            />
           ))}
         </div>
       )}

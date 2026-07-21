@@ -120,6 +120,7 @@ export default function LibraryFilters({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div role="group" aria-label="Filter by type">
             <SelectDropDown
+              title="Filter by type"
               value={selectedTypeOption}
               setValue={handleTypeChange}
               availableValues={LIBRARY_TYPE_FILTER_OPTIONS}
@@ -130,6 +131,7 @@ export default function LibraryFilters({
           </div>
           <div role="group" aria-label="Sort library items">
             <SelectDropDown
+              title="Sort library items"
               value={selectedSortOption}
               setValue={handleSortChange}
               availableValues={LIBRARY_SORT_OPTIONS}

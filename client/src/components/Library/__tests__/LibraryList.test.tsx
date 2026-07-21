@@ -104,7 +104,7 @@ describe('LibraryList', () => {
 
     const list = screen.getByRole('list', { name: 'Library items' });
     const firstItem = within(list).getAllByRole('listitem')[0];
-    expect(firstItem).toHaveTextContent('README.md');
+    expect(firstItem).toHaveTextContent('api-client.ts');
   });
 
   it('toggles between dense and preview views', async () => {
@@ -118,6 +118,7 @@ describe('LibraryList', () => {
 
     const list = screen.getByRole('list', { name: 'Library items' });
     expect(list).toHaveClass('flex-col');
+    expect(screen.getByRole('group', { name: 'Library view' })).toBeInTheDocument();
 
     const previewButton = screen.getByRole('button', { name: 'Preview grid view' });
     await userEvent.click(previewButton);
@@ -125,6 +126,8 @@ describe('LibraryList', () => {
     const grid = screen.getByRole('list', { name: 'Library items' });
     expect(grid).toHaveClass('grid');
     expect(screen.getByText('Q4 Financial Report.pdf')).toBeInTheDocument();
+    const firstCard = within(grid).getAllByRole('listitem')[0];
+    expect(within(firstCard).queryByRole('button')).not.toBeInTheDocument();
 
     const denseButton = screen.getByRole('button', { name: 'Dense list view' });
     await userEvent.click(denseButton);
@@ -132,7 +135,7 @@ describe('LibraryList', () => {
     expect(screen.getByRole('list', { name: 'Library items' })).toHaveClass('flex-col');
   });
 
-  it('renders quick actions in dense view', () => {
+  it('does not render quick actions without callbacks', () => {
     render(
       <LibraryList
         items={mockLibraryItems}
@@ -141,12 +144,40 @@ describe('LibraryList', () => {
       />,
     );
 
-    const list = screen.getByRole('list', { name: 'Library items' });
-    const firstItem = within(list).getAllByRole('listitem')[0];
+    expect(screen.queryByRole('group', { name: 'Quick actions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More options' })).not.toBeInTheDocument();
+  });
 
-    expect(within(firstItem).getByRole('button', { name: 'Open' })).toBeInTheDocument();
-    expect(within(firstItem).getByRole('button', { name: 'Download' })).toBeInTheDocument();
-    expect(within(firstItem).getByRole('button', { name: 'Share' })).toBeInTheDocument();
-    expect(within(firstItem).getByRole('button', { name: 'More options' })).toBeInTheDocument();
+  it('renders and invokes only configured quick actions', async () => {
+    const onItemClick = jest.fn();
+    const onDownload = jest.fn();
+    const onShare = jest.fn();
+    const onMore = jest.fn();
+    const item = mockLibraryItems[0];
+
+    render(
+      <LibraryList
+        items={[item]}
+        status="populated"
+        onItemClick={onItemClick}
+        onDownload={onDownload}
+        onShare={onShare}
+        onMore={onMore}
+      />,
+    );
+
+    const quickActions = screen.getByRole('group', { name: 'Quick actions' });
+    await userEvent.click(within(quickActions).getByRole('button', { name: 'Open' }));
+    await userEvent.click(within(quickActions).getByRole('button', { name: 'Download' }));
+    await userEvent.click(within(quickActions).getByRole('button', { name: 'Share' }));
+    await userEvent.click(within(quickActions).getByRole('button', { name: 'More options' }));
+
+    expect(onItemClick).toHaveBeenCalledWith(item);
+    expect(onDownload).toHaveBeenCalledWith(item);
+    expect(onShare).toHaveBeenCalledWith(item);
+    expect(onMore).toHaveBeenCalledWith(item);
   });
 });

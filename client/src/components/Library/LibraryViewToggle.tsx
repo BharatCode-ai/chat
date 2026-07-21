@@ -19,7 +19,7 @@ export default function LibraryViewToggle({
         'inline-flex items-center rounded-lg border border-border-light bg-surface-primary p-0.5',
         className,
       )}
-      role="radiogroup"
+      role="group"
       aria-label="Library view"
     >
       <button

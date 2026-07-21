@@ -8,12 +8,21 @@ import LibraryItemActions from './LibraryItemActions';
 interface LibraryListItemProps {
   item: LibraryItem;
   onClick?: (item: LibraryItem) => void;
+  onDownload?: (item: LibraryItem) => void;
+  onShare?: (item: LibraryItem) => void;
+  onMore?: (item: LibraryItem) => void;
 }
 
 const itemRowClassName =
   'flex w-full items-center gap-3 rounded-lg border border-border-light bg-surface-primary px-4 py-3 text-left transition-colors';
 
-export default function LibraryListItem({ item, onClick }: LibraryListItemProps) {
+export default function LibraryListItem({
+  item,
+  onClick,
+  onDownload,
+  onShare,
+  onMore,
+}: LibraryListItemProps) {
   const fileType = getLibraryFileType(item.type);
   const isArtifact = item.type === 'artifact';
   const iconColor = TYPE_COLOR_MAP[item.type];
@@ -74,7 +83,13 @@ export default function LibraryListItem({ item, onClick }: LibraryListItemProps)
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-3">{content}</div>
       )}
-      <LibraryItemActions className="hidden shrink-0 sm:flex" />
+      <LibraryItemActions
+        onOpen={onClick ? () => onClick(item) : undefined}
+        onDownload={onDownload ? () => onDownload(item) : undefined}
+        onShare={onShare ? () => onShare(item) : undefined}
+        onMore={onMore ? () => onMore(item) : undefined}
+        className="hidden shrink-0 sm:flex"
+      />
     </div>
   );
 }
