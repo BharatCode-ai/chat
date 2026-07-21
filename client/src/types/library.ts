@@ -25,16 +25,16 @@ export type LibraryListStatus = 'loading' | 'empty' | 'populated' | 'error';
 export type LibraryTypeFilter = LibraryItemType | 'all';
 
 export interface LibraryItem {
-  id: string;
-  name: string;
+  id: FileRecord['id'] | ArtifactRecord['id'];
+  name: FileRecord['name'] | ArtifactRecord['name'];
   type: LibraryItemType;
   kind: LibraryItemKind;
-  sizeBytes: number;
-  createdAt: string;
-  updatedAt?: string;
+  sizeBytes: FileRecord['sizeBytes'];
+  createdAt: NonNullable<FileRecord['createdAt'] | ArtifactRecord['createdAt']>;
+  updatedAt?: FileRecord['updatedAt'] | ArtifactRecord['updatedAt'];
   description?: string;
   conversationId?: string;
-  mimeType?: string;
+  contentType?: SupportedArtifactContentType;
 }
 
 export interface LibraryStorageInfo {
@@ -56,3 +56,8 @@ export interface LibraryListResponse {
   items: LibraryItem[];
   storage: LibraryStorageInfo | null;
 }
+import type {
+  ArtifactRecord,
+  FileRecord,
+  SupportedArtifactContentType,
+} from 'librechat-data-provider';

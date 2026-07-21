@@ -14,12 +14,19 @@ interface LibraryPreviewCardProps {
 }
 
 function isPresentation(item: LibraryItem): boolean {
-  return item.name.toLowerCase().endsWith('.pptx') || item.mimeType?.includes('presentation') === true;
+  return (
+    item.name.toLowerCase().endsWith('.pptx') ||
+    item.contentType?.includes('presentation') === true
+  );
 }
 
 function isWordOrMarkdown(item: LibraryItem): boolean {
   const lower = item.name.toLowerCase();
-  return lower.endsWith('.docx') || lower.endsWith('.md') || item.mimeType?.includes('wordprocessing') === true;
+  return (
+    lower.endsWith('.docx') ||
+    lower.endsWith('.md') ||
+    item.contentType?.includes('wordprocessing') === true
+  );
 }
 
 function DeckPreview() {
@@ -103,7 +110,7 @@ function PreviewArea({ item }: { item: LibraryItem }) {
   if (item.type === 'spreadsheet') {
     return <SpreadsheetPreview />;
   }
-  if (item.type === 'code' || (item.mimeType && item.mimeType.includes('html'))) {
+  if (item.type === 'code' || item.contentType?.includes('html')) {
     return <CodePreview />;
   }
   if (isPresentation(item)) {

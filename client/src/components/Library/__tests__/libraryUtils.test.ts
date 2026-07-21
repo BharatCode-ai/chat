@@ -1,3 +1,4 @@
+import { isSupportedArtifactContentType } from 'librechat-data-provider';
 import { mockLibraryItems } from '~/data/mockLibraryData';
 import {
   applyLibraryFilters,
@@ -14,6 +15,18 @@ import {
 } from '../libraryUtils';
 
 describe('libraryUtils', () => {
+  it('keeps mock records aligned with shared file and artifact identifiers', () => {
+    for (const item of mockLibraryItems) {
+      expect(item.id).toMatch(item.kind === 'file' ? /^file_/ : /^artifact_/);
+      expect(item).not.toHaveProperty('mimeType');
+
+      const contentType = (item as { contentType?: string }).contentType;
+      if (contentType) {
+        expect(isSupportedArtifactContentType(contentType)).toBe(true);
+      }
+    }
+  });
+
   describe('formatLibraryFileSize', () => {
     it('formats bytes', () => {
       expect(formatLibraryFileSize(512)).toBe('512 B');
