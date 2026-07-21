@@ -49,4 +49,3 @@ No credentials or private deployment details belong in the public PR.
 - The generated service worker precaches `index.html`.
 - `chat.bharatcode.ai` renders in a clean browser session after deployment.
 - Existing API and container health checks remain green.
-

@@ -21,11 +21,13 @@
 ### Task 1: Production-bundle regression smoke check
 
 **Files:**
+
 - Create: `client/scripts/smoke-built-client.cjs`
 - Modify: `package.json`
 - Test: `client/scripts/smoke-built-client.cjs`
 
 **Interfaces:**
+
 - Consumes: `client/dist/index.html`, `client/dist/sw.js`, and the root `playwright` dependency.
 - Produces: root npm script `smoke:client-runtime`; `frontend:ci` invokes it after building.
 
@@ -136,12 +138,14 @@ Run: `git add package.json client/scripts/smoke-built-client.cjs && git commit -
 ### Task 2: Restore the known-good frontend build pipeline
 
 **Files:**
+
 - Modify: `client/package.json`
 - Modify: `package-lock.json`
 - Modify: `client/vite.config.ts`
 - Test: `client/scripts/smoke-built-client.cjs`
 
 **Interfaces:**
+
 - Consumes: the smoke script and npm scripts from Task 1.
 - Produces: a Vite 7 production bundle whose runtime initializes successfully and whose service worker precaches `index.html`.
 
@@ -191,10 +195,12 @@ Run: `git add client/package.json package-lock.json client/vite.config.ts && git
 ### Task 3: Release and production verification
 
 **Files:**
+
 - No public source files beyond Tasks 1–2.
 - Private sync and deployment files only if required by the repository's existing release process.
 
 **Interfaces:**
+
 - Consumes: reviewed public hotfix commit.
 - Produces: deployed production image and recorded rollback commit/image.
 
