@@ -1,7 +1,8 @@
 import { FileIcon, Sparkles } from '@librechat/client';
 import type { LibraryItem } from '~/types/library';
+import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
-import { formatLibraryDate, formatLibraryFileSize, LIBRARY_TYPE_LABELS } from './libraryUtils';
+import { formatLibraryDate, formatLibraryFileSize, getLibraryTypeLabel } from './libraryUtils';
 import { getLibraryFileType, TYPE_COLOR_MAP } from './libraryTypeMeta';
 import LibraryItemActions from './LibraryItemActions';
 
@@ -23,10 +24,19 @@ export default function LibraryListItem({
   onShare,
   onMore,
 }: LibraryListItemProps) {
-  const fileType = getLibraryFileType(item.type);
+  const localize = useLocalize();
+  const fileType = getLibraryFileType(item.type, localize);
   const isArtifact = item.type === 'artifact';
   const iconColor = TYPE_COLOR_MAP[item.type];
-  const ariaLabel = `${item.name}, ${LIBRARY_TYPE_LABELS[item.type]}, ${formatLibraryFileSize(item.sizeBytes)}`;
+  const typeLabel = getLibraryTypeLabel(item.type, localize);
+  const itemKind = localize(
+    item.kind === 'artifact' ? 'com_ui_library_type_artifact' : 'com_ui_library_type_file',
+  );
+  const ariaLabel = localize('com_ui_library_item_label', {
+    name: item.name,
+    type: typeLabel,
+    size: formatLibraryFileSize(item.sizeBytes),
+  });
 
   const content = (
     <>
@@ -48,10 +58,8 @@ export default function LibraryListItem({
           </span>
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-secondary">
-          <span className="rounded bg-surface-tertiary px-1.5 py-0.5 font-medium">
-            {LIBRARY_TYPE_LABELS[item.type]}
-          </span>
-          <span className="capitalize">{item.kind}</span>
+          <span className="rounded bg-surface-tertiary px-1.5 py-0.5 font-medium">{typeLabel}</span>
+          <span>{itemKind}</span>
           <span aria-hidden="true">·</span>
           <time dateTime={item.createdAt}>{formatLibraryDate(item.createdAt)}</time>
         </div>
@@ -68,7 +76,7 @@ export default function LibraryListItem({
       className={cn(
         itemRowClassName,
         onClick &&
-          'cursor-pointer hover:border-border-medium hover:bg-surface-hover focus-within:outline-none focus-within:ring-2 focus-within:ring-ring',
+          'cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring hover:border-border-medium hover:bg-surface-hover',
       )}
       aria-label={ariaLabel}
     >

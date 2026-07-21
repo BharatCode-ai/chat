@@ -6,7 +6,9 @@ import {
   TextPaths,
   VideoPaths,
 } from '@librechat/client';
+import type { LocalizeFunction } from '~/common';
 import type { LibraryItemType } from '~/types/library';
+import type { TranslationKeys } from '~/hooks/useLocalize';
 
 export interface LibraryFileType {
   fill: string;
@@ -14,14 +16,23 @@ export interface LibraryFileType {
   title: string;
 }
 
-export const TYPE_FILE_TYPE_MAP: Record<Exclude<LibraryItemType, 'artifact'>, LibraryFileType> = {
-  pdf: { paths: TextPaths, fill: '#EF4444', title: 'PDF' },
-  image: { paths: FilePaths, fill: '#EC4899', title: 'Image' },
-  video: { paths: VideoPaths, fill: '#A855F7', title: 'Video' },
-  document: { paths: TextPaths, fill: '#3B82F6', title: 'Document' },
-  code: { paths: CodePaths, fill: '#F97316', title: 'Code' },
-  spreadsheet: { paths: SheetPaths, fill: '#10B981', title: 'Spreadsheet' },
-  audio: { paths: AudioPaths, fill: '#F59E0B', title: 'Audio' },
+type LibraryFileTypeConfig = Omit<LibraryFileType, 'title'> & { titleKey: TranslationKeys };
+
+export const TYPE_FILE_TYPE_MAP: Record<
+  Exclude<LibraryItemType, 'artifact'>,
+  LibraryFileTypeConfig
+> = {
+  pdf: { paths: TextPaths, fill: '#EF4444', titleKey: 'com_ui_library_pdf' },
+  image: { paths: FilePaths, fill: '#EC4899', titleKey: 'com_ui_library_image' },
+  video: { paths: VideoPaths, fill: '#A855F7', titleKey: 'com_ui_library_video' },
+  document: { paths: TextPaths, fill: '#3B82F6', titleKey: 'com_ui_library_document' },
+  code: { paths: CodePaths, fill: '#F97316', titleKey: 'com_ui_code' },
+  spreadsheet: {
+    paths: SheetPaths,
+    fill: '#10B981',
+    titleKey: 'com_ui_library_spreadsheet',
+  },
+  audio: { paths: AudioPaths, fill: '#F59E0B', titleKey: 'com_ui_library_audio' },
 };
 
 export const TYPE_COLOR_MAP: Record<LibraryItemType, string> = {
@@ -37,6 +48,12 @@ export const TYPE_COLOR_MAP: Record<LibraryItemType, string> = {
 
 export function getLibraryFileType(
   type: LibraryItemType,
+  localize: LocalizeFunction,
 ): LibraryFileType | null {
-  return type === 'artifact' ? null : TYPE_FILE_TYPE_MAP[type];
+  if (type === 'artifact') {
+    return null;
+  }
+
+  const { titleKey, ...fileType } = TYPE_FILE_TYPE_MAP[type];
+  return { ...fileType, title: localize(titleKey) };
 }

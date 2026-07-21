@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { mockLibraryResponse } from '~/data/mockLibraryData';
-import type {
-  LibraryItem,
-  LibraryListStatus,
-  LibraryStorageInfo,
-} from '~/types/library';
+import { useLocalize } from '~/hooks';
+import type { LibraryItem, LibraryListStatus, LibraryStorageInfo } from '~/types/library';
 
 const MOCK_LOAD_DELAY_MS = 800;
 
@@ -35,6 +32,7 @@ interface UseMockLibraryDataResult {
 export function useMockLibraryData(
   options: UseMockLibraryDataOptions = {},
 ): UseMockLibraryDataResult {
+  const localize = useLocalize();
   const { scenario = 'success', delayMs = MOCK_LOAD_DELAY_MS, autoFetch = true } = options;
 
   const [items, setItems] = useState<LibraryItem[]>([]);
@@ -68,7 +66,7 @@ export function useMockLibraryData(
         setItems([]);
         setStorage(null);
         setStatus('error');
-        setErrorMessage('Failed to connect to the library service. Please try again.');
+        setErrorMessage(localize('com_ui_library_error_service'));
         return;
       }
 
@@ -90,7 +88,7 @@ export function useMockLibraryData(
     return () => {
       cancelled = true;
     };
-  }, [autoFetch, delayMs, scenario, fetchKey]);
+  }, [autoFetch, delayMs, scenario, fetchKey, localize]);
 
   return {
     items,

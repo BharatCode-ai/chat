@@ -6,6 +6,7 @@ import type {
   LibraryStorageInfo,
   LibraryViewMode,
 } from '~/types/library';
+import { useLocalize } from '~/hooks';
 import LibraryEmptyState from './LibraryEmptyState';
 import LibraryErrorState from './LibraryErrorState';
 import LibraryFilters from './LibraryFilters';
@@ -46,6 +47,7 @@ export default function LibraryList({
   onMore,
   className = '',
 }: LibraryListProps) {
+  const localize = useLocalize();
   const [filters, setFilters] = useState<LibraryFiltersState>(DEFAULT_FILTERS);
   const [viewMode, setViewMode] = useState<LibraryViewMode>('dense');
 
@@ -54,8 +56,7 @@ export default function LibraryList({
     [items, filters, status],
   );
 
-  const isFiltered =
-    filters.search.trim().length > 0 || filters.typeFilter !== 'all';
+  const isFiltered = filters.search.trim().length > 0 || filters.typeFilter !== 'all';
 
   const handleClearFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
@@ -88,6 +89,49 @@ export default function LibraryList({
     );
   }
 
+  let listContent: React.ReactNode;
+  if (filteredItems.length === 0) {
+    listContent = <LibraryEmptyState isFiltered={isFiltered} onClearFilters={handleClearFilters} />;
+  } else if (viewMode === 'preview') {
+    listContent = (
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        role="list"
+        aria-label={localize('com_ui_library_items')}
+      >
+        {filteredItems.map((item) => (
+          <LibraryPreviewCard
+            key={item.id}
+            item={item}
+            onClick={onItemClick}
+            onDownload={onDownload}
+            onShare={onShare}
+            onMore={onMore}
+          />
+        ))}
+      </div>
+    );
+  } else {
+    listContent = (
+      <div
+        className="flex flex-col gap-2"
+        role="list"
+        aria-label={localize('com_ui_library_items')}
+      >
+        {filteredItems.map((item) => (
+          <LibraryListItem
+            key={item.id}
+            item={item}
+            onClick={onItemClick}
+            onDownload={onDownload}
+            onShare={onShare}
+            onMore={onMore}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
       {storage && <LibraryStorageBar storage={storage} />}
@@ -101,39 +145,7 @@ export default function LibraryList({
         onViewModeChange={setViewMode}
       />
 
-      {filteredItems.length === 0 ? (
-        <LibraryEmptyState isFiltered={isFiltered} onClearFilters={handleClearFilters} />
-      ) : viewMode === 'preview' ? (
-        <div
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          role="list"
-          aria-label="Library items"
-        >
-          {filteredItems.map((item) => (
-            <LibraryPreviewCard
-              key={item.id}
-              item={item}
-              onClick={onItemClick}
-              onDownload={onDownload}
-              onShare={onShare}
-              onMore={onMore}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2" role="list" aria-label="Library items">
-          {filteredItems.map((item) => (
-            <LibraryListItem
-              key={item.id}
-              item={item}
-              onClick={onItemClick}
-              onDownload={onDownload}
-              onShare={onShare}
-              onMore={onMore}
-            />
-          ))}
-        </div>
-      )}
+      {listContent}
     </div>
   );
 }

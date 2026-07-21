@@ -1,14 +1,17 @@
 import { Skeleton } from '@librechat/client';
+import { useLocalize } from '~/hooks';
 
 const SKELETON_ROWS = 6;
 
 export default function LibraryLoadingState() {
+  const localize = useLocalize();
+
   return (
     <div
       className="flex flex-col gap-3"
       role="status"
       aria-live="polite"
-      aria-label="Loading library"
+      aria-label={localize('com_ui_library_loading')}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Skeleton className="h-10 w-full max-w-md rounded-lg" />

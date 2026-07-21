@@ -10,12 +10,12 @@ import { Search } from 'lucide-react';
 import { CrossIcon } from '@librechat/client';
 import { Input, SelectDropDown } from '@librechat/client';
 import type { LibraryFiltersState, LibraryViewMode } from '~/types/library';
-import { useDebounce } from '~/hooks';
+import { useDebounce, useLocalize } from '~/hooks';
 import { createDropdownSetter } from '~/utils';
 import {
   findLibraryOption,
-  LIBRARY_SORT_OPTIONS,
-  LIBRARY_TYPE_FILTER_OPTIONS,
+  createLibrarySortOptions,
+  createLibraryTypeFilterOptions,
   parseLibrarySortOption,
   parseLibraryTypeFilter,
 } from './libraryUtils';
@@ -38,6 +38,7 @@ export default function LibraryFilters({
   viewMode,
   onViewModeChange,
 }: LibraryFiltersProps) {
+  const localize = useLocalize();
   const [searchInput, setSearchInput] = useState(filters.search);
   const debouncedSearch = useDebounce(searchInput, 300);
 
@@ -56,9 +57,12 @@ export default function LibraryFilters({
     onFiltersChange((prev) => ({ ...prev, search: '' }));
   }, [onFiltersChange]);
 
-  const selectedTypeOption = findLibraryOption(LIBRARY_TYPE_FILTER_OPTIONS, filters.typeFilter);
+  const typeFilterOptions = useMemo(() => createLibraryTypeFilterOptions(localize), [localize]);
+  const sortOptions = useMemo(() => createLibrarySortOptions(localize), [localize]);
 
-  const selectedSortOption = findLibraryOption(LIBRARY_SORT_OPTIONS, filters.sortBy);
+  const selectedTypeOption = findLibraryOption(typeFilterOptions, filters.typeFilter);
+
+  const selectedSortOption = findLibraryOption(sortOptions, filters.sortBy);
 
   const handleTypeChange = useMemo(
     () =>
@@ -80,24 +84,21 @@ export default function LibraryFilters({
     [onFiltersChange],
   );
 
-  const itemLabel = totalCount === 1 ? 'item' : 'items';
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1" role="search">
-          {/* eslint-disable-next-line i18next/no-literal-string */}
           <label htmlFor="library-search" className="sr-only">
-            Search library
+            {localize('com_ui_library_search')}
           </label>
           <Input
             id="library-search"
             type="search"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search files and artifacts..."
+            placeholder={localize('com_ui_library_search_placeholder')}
             className="h-10 rounded-lg border-border-medium bg-transparent pl-10 pr-10 text-sm text-text-primary placeholder:text-text-secondary focus:ring-0"
-            aria-label="Search library"
+            aria-label={localize('com_ui_library_search')}
             autoComplete="off"
             spellCheck={false}
           />
@@ -110,7 +111,7 @@ export default function LibraryFilters({
               type="button"
               onClick={handleClearSearch}
               className="absolute right-3 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Clear search"
+              aria-label={localize('com_ui_clear_search')}
             >
               <CrossIcon className="size-4" aria-hidden="true" />
             </button>
@@ -118,23 +119,23 @@ export default function LibraryFilters({
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div role="group" aria-label="Filter by type">
+          <div role="group" aria-label={localize('com_ui_library_filter_by_type')}>
             <SelectDropDown
-              title="Filter by type"
+              title={localize('com_ui_library_filter_by_type')}
               value={selectedTypeOption}
               setValue={handleTypeChange}
-              availableValues={LIBRARY_TYPE_FILTER_OPTIONS}
+              availableValues={typeFilterOptions}
               showAbove={false}
               showLabel={false}
               className="h-10 min-w-[9rem] rounded-lg text-sm"
             />
           </div>
-          <div role="group" aria-label="Sort library items">
+          <div role="group" aria-label={localize('com_ui_library_sort_items')}>
             <SelectDropDown
-              title="Sort library items"
+              title={localize('com_ui_library_sort_items')}
               value={selectedSortOption}
               setValue={handleSortChange}
-              availableValues={LIBRARY_SORT_OPTIONS}
+              availableValues={sortOptions}
               showAbove={false}
               showLabel={false}
               className="h-10 min-w-[9rem] rounded-lg text-sm"
@@ -144,11 +145,12 @@ export default function LibraryFilters({
         </div>
       </div>
 
-      {/* eslint-disable i18next/no-literal-string */}
       <p className="text-xs text-text-secondary" aria-live="polite">
-        Showing {resultCount} of {totalCount} {itemLabel}
+        {localize(
+          totalCount === 1 ? 'com_ui_library_items_count_one' : 'com_ui_library_items_count_other',
+          { resultCount, totalCount },
+        )}
       </p>
-      {/* eslint-enable i18next/no-literal-string */}
     </div>
   );
 }

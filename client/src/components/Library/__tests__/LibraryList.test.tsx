@@ -6,6 +6,18 @@ import LibraryList from '../LibraryList';
 
 jest.mock('~/hooks', () => ({
   useDebounce: (value: string) => value,
+  useLocalize:
+    () =>
+    (key: string, options: Record<string, string | number> = {}) => {
+      const translations = jest.requireActual('~/locales/en/translation.json') as Record<
+        string,
+        string
+      >;
+      return Object.entries(options).reduce(
+        (text, [name, value]) => text.replace(`{{${name}}}`, String(value)),
+        translations[key],
+      );
+    },
 }));
 
 describe('LibraryList', () => {
@@ -17,17 +29,12 @@ describe('LibraryList', () => {
   it('renders error state with retry', () => {
     const onRetry = jest.fn();
     render(
-      <LibraryList
-        items={[]}
-        status="error"
-        errorMessage="Network error"
-        onRetry={onRetry}
-      />,
+      <LibraryList items={[]} status="error" errorMessage="Network error" onRetry={onRetry} />,
     );
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText('Network error')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retry loading library' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
   it('renders empty state', () => {
@@ -38,25 +45,19 @@ describe('LibraryList', () => {
 
   it('renders populated list with items', () => {
     render(
-      <LibraryList
-        items={mockLibraryItems}
-        status="populated"
-        storage={mockLibraryStorage}
-      />,
+      <LibraryList items={mockLibraryItems} status="populated" storage={mockLibraryStorage} />,
     );
 
     expect(screen.getByRole('search')).toBeInTheDocument();
-    expect(screen.getByText(`Showing ${mockLibraryItems.length} of ${mockLibraryItems.length} items`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`Showing ${mockLibraryItems.length} of ${mockLibraryItems.length} items`),
+    ).toBeInTheDocument();
     expect(screen.getByText('Q4 Financial Report.pdf')).toBeInTheDocument();
   });
 
   it('filters items by search query', async () => {
     render(
-      <LibraryList
-        items={mockLibraryItems}
-        status="populated"
-        storage={mockLibraryStorage}
-      />,
+      <LibraryList items={mockLibraryItems} status="populated" storage={mockLibraryStorage} />,
     );
 
     const searchInput = screen.getByRole('searchbox', { name: 'Search library' });
@@ -69,11 +70,7 @@ describe('LibraryList', () => {
 
   it('filters items by type', async () => {
     render(
-      <LibraryList
-        items={mockLibraryItems}
-        status="populated"
-        storage={mockLibraryStorage}
-      />,
+      <LibraryList items={mockLibraryItems} status="populated" storage={mockLibraryStorage} />,
     );
 
     const typeDropdown = screen.getByRole('button', { name: /Filter by type/i });
@@ -89,11 +86,7 @@ describe('LibraryList', () => {
 
   it('sorts items by name', async () => {
     render(
-      <LibraryList
-        items={mockLibraryItems}
-        status="populated"
-        storage={mockLibraryStorage}
-      />,
+      <LibraryList items={mockLibraryItems} status="populated" storage={mockLibraryStorage} />,
     );
 
     const sortDropdown = screen.getByRole('button', { name: /Sort library items/i });
@@ -109,11 +102,7 @@ describe('LibraryList', () => {
 
   it('toggles between dense and preview views', async () => {
     render(
-      <LibraryList
-        items={mockLibraryItems}
-        status="populated"
-        storage={mockLibraryStorage}
-      />,
+      <LibraryList items={mockLibraryItems} status="populated" storage={mockLibraryStorage} />,
     );
 
     const list = screen.getByRole('list', { name: 'Library items' });
@@ -128,6 +117,7 @@ describe('LibraryList', () => {
     expect(screen.getByText('Q4 Financial Report.pdf')).toBeInTheDocument();
     const firstCard = within(grid).getAllByRole('listitem')[0];
     expect(within(firstCard).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(firstCard).queryByText('Quick actions')).not.toBeInTheDocument();
 
     const denseButton = screen.getByRole('button', { name: 'Dense list view' });
     await userEvent.click(denseButton);
@@ -137,11 +127,7 @@ describe('LibraryList', () => {
 
   it('does not render quick actions without callbacks', () => {
     render(
-      <LibraryList
-        items={mockLibraryItems}
-        status="populated"
-        storage={mockLibraryStorage}
-      />,
+      <LibraryList items={mockLibraryItems} status="populated" storage={mockLibraryStorage} />,
     );
 
     expect(screen.queryByRole('group', { name: 'Quick actions' })).not.toBeInTheDocument();
@@ -149,6 +135,7 @@ describe('LibraryList', () => {
     expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More options' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Quick actions')).not.toBeInTheDocument();
   });
 
   it('renders and invokes only configured quick actions', async () => {
@@ -170,6 +157,7 @@ describe('LibraryList', () => {
     );
 
     const quickActions = screen.getByRole('group', { name: 'Quick actions' });
+    expect(screen.getByText('Showing 1 of 1 item')).toBeInTheDocument();
     await userEvent.click(within(quickActions).getByRole('button', { name: 'Open' }));
     await userEvent.click(within(quickActions).getByRole('button', { name: 'Download' }));
     await userEvent.click(within(quickActions).getByRole('button', { name: 'Share' }));

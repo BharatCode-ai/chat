@@ -1,4 +1,4 @@
-import type { Option } from '~/common';
+import type { LocalizeFunction, Option } from '~/common';
 import type {
   LibraryFiltersState,
   LibraryItem,
@@ -6,25 +6,26 @@ import type {
   LibrarySortOption,
   LibraryTypeFilter,
 } from '~/types/library';
+import type { TranslationKeys } from '~/hooks/useLocalize';
 
-/** Human-readable labels for each library item type. */
-export const LIBRARY_TYPE_LABELS: Record<LibraryItemType, string> = {
-  pdf: 'PDF',
-  image: 'Image',
-  video: 'Video',
-  document: 'Document',
-  code: 'Code',
-  spreadsheet: 'Spreadsheet',
-  audio: 'Audio',
-  artifact: 'Artifact',
+/** Translation keys for each library item type. */
+export const LIBRARY_TYPE_LABEL_KEYS: Record<LibraryItemType, TranslationKeys> = {
+  pdf: 'com_ui_library_pdf',
+  image: 'com_ui_library_image',
+  video: 'com_ui_library_video',
+  document: 'com_ui_library_document',
+  code: 'com_ui_code',
+  spreadsheet: 'com_ui_library_spreadsheet',
+  audio: 'com_ui_library_audio',
+  artifact: 'com_ui_library_artifact',
 };
 
-/** Sort option labels for the sort dropdown. */
-export const LIBRARY_SORT_LABELS: Record<LibrarySortOption, string> = {
-  newest: 'Newest first',
-  oldest: 'Oldest first',
-  name: 'Name (A–Z)',
-  size: 'Size (largest)',
+/** Translation keys for the sort dropdown. */
+export const LIBRARY_SORT_LABEL_KEYS: Record<LibrarySortOption, TranslationKeys> = {
+  newest: 'com_ui_library_newest_first',
+  oldest: 'com_ui_library_oldest_first',
+  name: 'com_ui_library_name_az',
+  size: 'com_ui_library_size_largest',
 };
 
 /** All filterable types in display order. */
@@ -40,21 +41,29 @@ export const LIBRARY_FILTER_TYPES: LibraryItemType[] = [
 ];
 
 const LIBRARY_TYPE_FILTER_VALUES = new Set<string>(['all', ...LIBRARY_FILTER_TYPES]);
-const LIBRARY_SORT_OPTION_VALUES = new Set<string>(Object.keys(LIBRARY_SORT_LABELS));
+const LIBRARY_SORT_OPTION_VALUES = new Set<string>(Object.keys(LIBRARY_SORT_LABEL_KEYS));
 
-/** Dropdown options for the type filter control. */
-export const LIBRARY_TYPE_FILTER_OPTIONS: Option[] = [
-  { value: 'all', label: 'All types' },
-  ...LIBRARY_FILTER_TYPES.map((type) => ({
-    value: type,
-    label: LIBRARY_TYPE_LABELS[type],
-  })),
-];
+export function getLibraryTypeLabel(type: LibraryItemType, localize: LocalizeFunction): string {
+  return localize(LIBRARY_TYPE_LABEL_KEYS[type]);
+}
 
-/** Dropdown options for the sort control. */
-export const LIBRARY_SORT_OPTIONS: Option[] = (
-  Object.entries(LIBRARY_SORT_LABELS) as [LibrarySortOption, string][]
-).map(([value, label]) => ({ value, label }));
+/** Builds localized dropdown options for the type filter control. */
+export function createLibraryTypeFilterOptions(localize: LocalizeFunction): Option[] {
+  return [
+    { value: 'all', label: localize('com_ui_library_all_types') },
+    ...LIBRARY_FILTER_TYPES.map((type) => ({
+      value: type,
+      label: getLibraryTypeLabel(type, localize),
+    })),
+  ];
+}
+
+/** Builds localized dropdown options for the sort control. */
+export function createLibrarySortOptions(localize: LocalizeFunction): Option[] {
+  return (Object.entries(LIBRARY_SORT_LABEL_KEYS) as [LibrarySortOption, TranslationKeys][]).map(
+    ([value, labelKey]) => ({ value, label: localize(labelKey) }),
+  );
+}
 
 /** Resolves a dropdown value to a valid type filter, falling back to `all`. */
 export function parseLibraryTypeFilter(value: string): LibraryTypeFilter {
@@ -67,11 +76,7 @@ export function parseLibrarySortOption(value: string): LibrarySortOption {
 }
 
 /** Finds the matching dropdown option or returns the fallback entry. */
-export function findLibraryOption(
-  options: Option[],
-  value: string,
-  fallbackIndex = 0,
-): Option {
+export function findLibraryOption(options: Option[], value: string, fallbackIndex = 0): Option {
   return options.find((option) => String(option.value) === value) ?? options[fallbackIndex];
 }
 
@@ -115,8 +120,7 @@ export function filterLibraryItemsBySearch(items: LibraryItem[], search: string)
 
   return items.filter(
     (item) =>
-      item.name.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query),
+      item.name.toLowerCase().includes(query) || item.description?.toLowerCase().includes(query),
   );
 }
 
@@ -145,7 +149,9 @@ export function sortLibraryItems(items: LibraryItem[], sortBy: LibrarySortOption
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
     case 'name':
-      return sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      return sorted.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+      );
     case 'size':
       return sorted.sort((a, b) => b.sizeBytes - a.sizeBytes);
     default:

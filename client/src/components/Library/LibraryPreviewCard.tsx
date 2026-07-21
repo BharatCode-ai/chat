@@ -1,7 +1,9 @@
 import { FileIcon, Sparkles } from '@librechat/client';
+import type { LocalizeFunction } from '~/common';
 import type { LibraryItem } from '~/types/library';
+import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
-import { formatLibraryDate, formatLibraryFileSize, LIBRARY_TYPE_LABELS } from './libraryUtils';
+import { formatLibraryDate, formatLibraryFileSize, getLibraryTypeLabel } from './libraryUtils';
 import { getLibraryFileType, TYPE_COLOR_MAP } from './libraryTypeMeta';
 import LibraryItemActions from './LibraryItemActions';
 
@@ -15,8 +17,7 @@ interface LibraryPreviewCardProps {
 
 function isPresentation(item: LibraryItem): boolean {
   return (
-    item.name.toLowerCase().endsWith('.pptx') ||
-    item.contentType?.includes('presentation') === true
+    item.name.toLowerCase().endsWith('.pptx') || item.contentType?.includes('presentation') === true
   );
 }
 
@@ -49,7 +50,10 @@ function DeckPreview() {
 function DocumentPreview() {
   return (
     <div className="relative h-24 w-20 overflow-hidden rounded-md border border-border-light bg-surface-primary shadow-sm">
-      <div className="absolute right-0 top-0 h-5 w-5 bg-blue-500" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+      <div
+        className="absolute right-0 top-0 h-5 w-5 bg-blue-500"
+        style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}
+      />
       <div className="space-y-1.5 p-3 pt-4">
         <div className="h-1.5 w-full rounded bg-surface-tertiary" />
         <div className="h-1.5 w-5/6 rounded bg-surface-tertiary" />
@@ -66,7 +70,7 @@ function SpreadsheetPreview() {
     <div className="w-32 overflow-hidden rounded-md border border-border-light bg-surface-primary shadow-sm">
       <div className="grid grid-cols-4 border-b border-border-light bg-emerald-700">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-4 border-r border-border-light/30 last:border-r-0" />
+          <div key={i} className="border-border-light/30 h-4 border-r last:border-r-0" />
         ))}
       </div>
       {Array.from({ length: 4 }).map((_, row) => (
@@ -103,7 +107,7 @@ function CodePreview() {
   );
 }
 
-function PreviewArea({ item }: { item: LibraryItem }) {
+function PreviewArea({ item, localize }: { item: LibraryItem; localize: LocalizeFunction }) {
   if (item.type === 'pdf' || isWordOrMarkdown(item)) {
     return <DocumentPreview />;
   }
@@ -117,13 +121,17 @@ function PreviewArea({ item }: { item: LibraryItem }) {
     return <DeckPreview />;
   }
 
-  const fileType = getLibraryFileType(item.type);
+  const fileType = getLibraryFileType(item.type, localize);
   const iconColor = TYPE_COLOR_MAP[item.type];
   const isArtifact = item.type === 'artifact';
 
   return (
     <div className={cn('flex items-center justify-center', iconColor)} aria-hidden="true">
-      {isArtifact ? <Sparkles className="size-12" /> : <FileIcon fileType={fileType} className="size-12" />}
+      {isArtifact ? (
+        <Sparkles className="size-12" />
+      ) : (
+        <FileIcon fileType={fileType} className="size-12" />
+      )}
     </div>
   );
 }
@@ -135,12 +143,24 @@ export default function LibraryPreviewCard({
   onShare,
   onMore,
 }: LibraryPreviewCardProps) {
-  const fileType = getLibraryFileType(item.type);
+  const localize = useLocalize();
+  const hasActions = Boolean(onClick || onDownload || onShare || onMore);
+  const fileType = getLibraryFileType(item.type, localize);
   const isArtifact = item.type === 'artifact';
   const iconColor = TYPE_COLOR_MAP[item.type];
-  const ariaLabel = `${item.name}, ${LIBRARY_TYPE_LABELS[item.type]}, ${formatLibraryFileSize(item.sizeBytes)}`;
+  const typeLabel = getLibraryTypeLabel(item.type, localize);
+  const itemKind = localize(
+    item.kind === 'artifact' ? 'com_ui_library_type_artifact' : 'com_ui_library_type_file',
+  );
+  const ariaLabel = localize('com_ui_library_item_label', {
+    name: item.name,
+    type: typeLabel,
+    size: formatLibraryFileSize(item.sizeBytes),
+  });
 
-  const sourceLabel = item.conversationId ? `Chat ${item.conversationId}` : item.kind;
+  const sourceLabel = item.conversationId
+    ? localize('com_ui_library_chat_source', { chatId: item.conversationId })
+    : itemKind;
 
   return (
     <div
@@ -156,31 +176,38 @@ export default function LibraryPreviewCard({
           type="button"
           onClick={() => onClick(item)}
           className="flex h-32 items-center justify-center bg-amber-50/80 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`Open ${item.name}`}
+          aria-label={localize('com_ui_library_open_item', { name: item.name })}
         >
-          <PreviewArea item={item} />
+          <PreviewArea item={item} localize={localize} />
         </button>
       ) : (
         <div className="flex h-32 items-center justify-center bg-amber-50/80 p-4">
-          <PreviewArea item={item} />
+          <PreviewArea item={item} localize={localize} />
         </div>
       )}
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start gap-2">
           <div className={cn('mt-0.5 shrink-0', iconColor)} aria-hidden="true">
-            {isArtifact ? <Sparkles className="size-4" /> : <FileIcon fileType={fileType} className="size-4" />}
+            {isArtifact ? (
+              <Sparkles className="size-4" />
+            ) : (
+              <FileIcon fileType={fileType} className="size-4" />
+            )}
           </div>
-          <p className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary" title={item.name}>
+          <p
+            className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary"
+            title={item.name}
+          >
             {item.name}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-secondary">
           <span className="rounded bg-surface-tertiary px-1.5 py-0.5 font-medium text-text-primary">
-            {LIBRARY_TYPE_LABELS[item.type]}
+            {typeLabel}
           </span>
-          <span className="capitalize">{sourceLabel}</span>
+          <span>{sourceLabel}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-secondary">
@@ -189,15 +216,19 @@ export default function LibraryPreviewCard({
           <span>{formatLibraryFileSize(item.sizeBytes)}</span>
         </div>
 
-        <div className="mt-auto flex items-center justify-between pt-1">
-          <span className="text-xs text-text-secondary">Quick actions</span>
-          <LibraryItemActions
-            onOpen={onClick ? () => onClick(item) : undefined}
-            onDownload={onDownload ? () => onDownload(item) : undefined}
-            onShare={onShare ? () => onShare(item) : undefined}
-            onMore={onMore ? () => onMore(item) : undefined}
-          />
-        </div>
+        {hasActions && (
+          <div className="mt-auto flex items-center justify-between pt-1">
+            <span className="text-xs text-text-secondary">
+              {localize('com_ui_library_quick_actions')}
+            </span>
+            <LibraryItemActions
+              onOpen={onClick ? () => onClick(item) : undefined}
+              onDownload={onDownload ? () => onDownload(item) : undefined}
+              onShare={onShare ? () => onShare(item) : undefined}
+              onMore={onMore ? () => onMore(item) : undefined}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { LayoutGrid, List } from 'lucide-react';
 import type { LibraryViewMode } from '~/types/library';
+import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
 interface LibraryViewToggleProps {
@@ -13,6 +14,8 @@ export default function LibraryViewToggle({
   onViewModeChange,
   className,
 }: LibraryViewToggleProps) {
+  const localize = useLocalize();
+
   return (
     <div
       className={cn(
@@ -20,13 +23,13 @@ export default function LibraryViewToggle({
         className,
       )}
       role="group"
-      aria-label="Library view"
+      aria-label={localize('com_ui_library_view')}
     >
       <button
         type="button"
         onClick={() => onViewModeChange('dense')}
         aria-pressed={viewMode === 'dense'}
-        aria-label="Dense list view"
+        aria-label={localize('com_ui_library_dense_view')}
         className={cn(
           'inline-flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           viewMode === 'dense'
@@ -40,7 +43,7 @@ export default function LibraryViewToggle({
         type="button"
         onClick={() => onViewModeChange('preview')}
         aria-pressed={viewMode === 'preview'}
-        aria-label="Preview grid view"
+        aria-label={localize('com_ui_library_preview_view')}
         className={cn(
           'inline-flex size-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           viewMode === 'preview'

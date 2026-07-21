@@ -1,18 +1,22 @@
 import { isSupportedArtifactContentType } from 'librechat-data-provider';
+import type { LocalizeFunction } from '~/common';
 import { mockLibraryItems } from '~/data/mockLibraryData';
+import english from '~/locales/en/translation.json';
 import {
   applyLibraryFilters,
+  createLibrarySortOptions,
+  createLibraryTypeFilterOptions,
   filterLibraryItemsBySearch,
   filterLibraryItemsByType,
   findLibraryOption,
   formatLibraryFileSize,
   getStorageUsagePercent,
-  LIBRARY_SORT_OPTIONS,
-  LIBRARY_TYPE_FILTER_OPTIONS,
   parseLibrarySortOption,
   parseLibraryTypeFilter,
   sortLibraryItems,
 } from '../libraryUtils';
+
+const localize = ((key) => english[key]) as LocalizeFunction;
 
 describe('libraryUtils', () => {
   it('keeps mock records aligned with shared file and artifact identifiers', () => {
@@ -53,18 +57,28 @@ describe('libraryUtils', () => {
 
   describe('filterLibraryItemsBySearch', () => {
     it('returns all items for empty search', () => {
-      expect(filterLibraryItemsBySearch(mockLibraryItems, '')).toHaveLength(mockLibraryItems.length);
+      expect(filterLibraryItemsBySearch(mockLibraryItems, '')).toHaveLength(
+        mockLibraryItems.length,
+      );
     });
 
     it('filters by name case-insensitively', () => {
       const results = filterLibraryItemsBySearch(mockLibraryItems, 'pdf');
-      expect(results.every((item) => item.name.toLowerCase().includes('pdf') || item.description?.toLowerCase().includes('pdf'))).toBe(true);
+      expect(
+        results.every(
+          (item) =>
+            item.name.toLowerCase().includes('pdf') ||
+            item.description?.toLowerCase().includes('pdf'),
+        ),
+      ).toBe(true);
     });
   });
 
   describe('filterLibraryItemsByType', () => {
     it('returns all items for "all" filter', () => {
-      expect(filterLibraryItemsByType(mockLibraryItems, 'all')).toHaveLength(mockLibraryItems.length);
+      expect(filterLibraryItemsByType(mockLibraryItems, 'all')).toHaveLength(
+        mockLibraryItems.length,
+      );
     });
 
     it('filters by type', () => {
@@ -129,11 +143,11 @@ describe('libraryUtils', () => {
 
   describe('findLibraryOption', () => {
     it('finds matching option by value', () => {
-      expect(findLibraryOption(LIBRARY_TYPE_FILTER_OPTIONS, 'pdf').label).toBe('PDF');
+      expect(findLibraryOption(createLibraryTypeFilterOptions(localize), 'pdf').label).toBe('PDF');
     });
 
     it('returns fallback option when value is missing', () => {
-      expect(findLibraryOption(LIBRARY_SORT_OPTIONS, 'missing').value).toBe('newest');
+      expect(findLibraryOption(createLibrarySortOptions(localize), 'missing').value).toBe('newest');
     });
   });
 });

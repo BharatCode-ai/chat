@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { FolderOpen, SearchX } from 'lucide-react';
+import { useLocalize } from '~/hooks';
 
 interface LibraryEmptyStateProps {
   /** True when filters/search produced no matches but the library has items. */
@@ -35,12 +36,14 @@ export default function LibraryEmptyState({
   isFiltered = false,
   onClearFilters,
 }: LibraryEmptyStateProps) {
+  const localize = useLocalize();
+
   if (isFiltered) {
     return (
       <EmptyStateLayout
         icon={SearchX}
-        title="No matching files"
-        description="Try adjusting your search or filter to find what you are looking for."
+        title={localize('com_ui_library_no_matches_title')}
+        description={localize('com_ui_library_no_matches_description')}
       >
         {onClearFilters && (
           <button
@@ -48,7 +51,7 @@ export default function LibraryEmptyState({
             onClick={onClearFilters}
             className="mt-4 rounded-lg border border-border-medium px-4 py-2 text-xs font-medium text-text-primary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Clear filters
+            {localize('com_ui_library_clear_filters')}
           </button>
         )}
       </EmptyStateLayout>
@@ -58,8 +61,8 @@ export default function LibraryEmptyState({
   return (
     <EmptyStateLayout
       icon={FolderOpen}
-      title="Your library is empty"
-      description="Files and artifacts from your conversations will appear here."
+      title={localize('com_ui_library_empty_title')}
+      description={localize('com_ui_library_empty_description')}
     />
   );
 }
