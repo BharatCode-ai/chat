@@ -42,9 +42,13 @@ async function main() {
   const server = createStaticServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address();
-  const browser = await chromium.launch({ headless: true });
+  let browser;
 
   try {
+    browser = await chromium.launch({
+      channel: process.env.CI ? 'chrome' : undefined,
+      headless: true,
+    });
     const page = await browser.newPage();
     const pageErrors = [];
     page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message));
@@ -59,7 +63,7 @@ async function main() {
       'The service worker must precache the index.html navigation fallback',
     );
   } finally {
-    await browser.close();
+    await browser?.close();
     await new Promise((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
     );
